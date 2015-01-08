@@ -551,7 +551,7 @@ int main (void) {
 				}
 				else if(uart0_getchar() == 'p'){
 					while(1){;}
-				/*
+				
 					Stop_PIT();
 					__disable_irq();
 					//if(camSwitch == 1){								//Print Camera 1
@@ -602,7 +602,7 @@ int main (void) {
 							count=0; Done=0;
 							break;}
 					}
-				*/}
+				}
 				intToHex(A_IFB); put(ascii); put(" ");
 				intToHex(B_IFB); put(ascii); put("\r\n");
 			}
