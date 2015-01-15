@@ -537,13 +537,14 @@ int main (void) {
 					//Right now, the program will compare the calculated midpoint of the black line to a preset value, then adjust the servo PWM.
 					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to 0.
 					//Ideally, we want the servo to adjust more or less depending on how big the error is. I haven't done that yet.
+					//The code here doesn't work correctly, it was just rough code used to finish lab 7. It is programmed to stay within a straight line, but not to do turns
 					/*
 					//looks at camera 1, (should be mounted on the left side of the car)
 					if(voltMid1 > 39){
-						PW1+=300;}	//Slight right turn, not sure which
+						PW1-=300;}	//Slight right turn
 					//looks at camera 2, (should be mounted on the right side of the car)
 					if(voltMid2 < 88){
-						PW1-=300;}	//Slight left, not sure which
+						PW1+=300;}	//Slight left turn
 					else{PW1=4500;}	//Centers the servo
 					*/
 					
