@@ -531,14 +531,22 @@ int main (void) {
 						__disable_irq();
 						put("\r\nPong: \r\n");}
 				
-					voltMid1 = voltMid1/voltCounter1;				//Calculate voltage midpoint by dividing all black indices with counter
+					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
 					voltMid2 = voltMid2/voltCounter2;
-					//Adjust servo according to midpoint here
-					//if(voltMid1 > 39){
-					//	PW1-=300;}
+					//Adjust servo here
+					//Right now, the program will compare the calculated midpoint of the black line to a preset value, then adjust the servo PWM.
+					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to 0.
+					//Ideally, we want the servo to adjust more or less depending on how big the error is. I haven't done that yet.
+					/*
+					//looks at camera 1
+					if(voltMid1 > 39){
+						PW1+=300;}	//Slight left/right turn, not sure which
+					//looks at camera 2
 					if(voltMid2 < 88){
-						PW1+=300;}
-					else{PW1=4500;}
+						PW1-=300;}	//Slight left/right turn, not sure which
+					else{PW1=4500;}	//Centers the servo
+					*/
+					
 					TPM1->CONTROLS[0].CnV = PW1;
 					put("Cam1: ");put(zeroOne1); //put("\r\n");
 					intToHex(voltMid1); put(" "); put(ascii);put("\r\n");
