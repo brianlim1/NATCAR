@@ -422,15 +422,15 @@ int main (void) {
 	/*
 //__wfi();
 	while(!uart0_getchar_present()){;}
-	if(uart0_getchar() == 'L')
+	if(uart0_getchar() == 'R')
 		{PW1 = 3000;}
-	else if(uart0_getchar() == 'l')
+	else if(uart0_getchar() == 'r')
 		{PW1 = 3750;}
 	else if(uart0_getchar() == 'C' || uart0_getchar() == 'c')
 		{PW1 = 4500;}
-	else if(uart0_getchar() == 'r')
+	else if(uart0_getchar() == 'l')
 		{PW1 = 5250;}
-	else if(uart0_getchar() == 'R')
+	else if(uart0_getchar() == 'L')
 		{PW1 = 6000;}
 	else if(uart0_getchar() == 'q' || uart0_getchar() == 'Q')
 		{return 0;}
@@ -538,12 +538,12 @@ int main (void) {
 					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to 0.
 					//Ideally, we want the servo to adjust more or less depending on how big the error is. I haven't done that yet.
 					/*
-					//looks at camera 1
+					//looks at camera 1, (should be mounted on the left side of the car)
 					if(voltMid1 > 39){
-						PW1+=300;}	//Slight left/right turn, not sure which
-					//looks at camera 2
+						PW1+=300;}	//Slight right turn, not sure which
+					//looks at camera 2, (should be mounted on the right side of the car)
 					if(voltMid2 < 88){
-						PW1-=300;}	//Slight left/right turn, not sure which
+						PW1-=300;}	//Slight left, not sure which
 					else{PW1=4500;}	//Centers the servo
 					*/
 					
