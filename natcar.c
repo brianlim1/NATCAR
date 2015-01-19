@@ -384,7 +384,7 @@ int main (void) {
 	char str[] = "\r\nTurn on power supply, then press SW2\r\n";
 	char str2[] = "\r\nSet duty cycles using POT1 and POT2\r\n";
 	char str3[] = "\r\nPress 'c' to continue scanning cameras or 'q' to quit\r\n";
-	char test[80];
+	char str4[80];
 	int uart0_clk_khz;
 	int SW1_Not_Pressed = 1;
 
@@ -445,12 +445,12 @@ int main (void) {
 			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);		//Start ADC conversion on ADC0_SE13 (PTB3; POT1)
 			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
 			dutyA = ADC0->R[0];		//Read 8-bit digital value of POT1
-			intToHex(dutyA); put(ascii); put(" ");
+			sprintf(str4, "%d", dutyA); put(str4); put(" ");
 			
 			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(12);		//Start ADC conversion on ADC0_SE12 (PTB2; POT2)
 			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
 			dutyB = ADC0->R[0];		//Read 8-bit digital value of POT2
-			intToHex(dutyB); put(ascii); put("\r\n");
+			sprintf(str4, "%d", dutyB); put(str4); put("\r\n");
 			
 			PWa = (600*dutyA)/255;				//Multiply max pulse width by percentage according to POT1
 			PWb = (600*dutyB)/255;				//Multiply max pulse width by percentage according to POT2
@@ -535,7 +535,7 @@ int main (void) {
 					voltMid2 = voltMid2/voltCounter2;
 					//Adjust servo here
 					//Right now, the program will compare the calculated midpoint of the black line to a preset value, then adjust the servo PWM.
-					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to 0.
+					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to -1.
 					//Ideally, we want the servo to adjust more or less depending on how big the error is. I haven't done that yet.
 					//The code here doesn't work correctly, it was just rough code used to finish lab 7. It is programmed to stay within a straight line, but not to do turns
 					/*
@@ -550,9 +550,9 @@ int main (void) {
 					
 					TPM1->CONTROLS[0].CnV = PW1;
 					put("Cam1: ");put(zeroOne1); //put("\r\n");
-					intToHex(voltMid1); put(" "); put(ascii);put("\r\n");
+					sprintf(str4, "%d", voltMid1); put(" "); put(str4); put("\r\n");
 					put("Cam2: ");put(zeroOne2); //put("\r\n");
-					intToHex(voltMid2); put(" "); put(ascii);put("\r\n");
+					sprintf(str4, "%d", voltMid2); put(" "); put(str4); put("\r\n");
 					__enable_irq();
 					Done=0;count=0;
 					sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
@@ -560,9 +560,10 @@ int main (void) {
 				}
 				else if(uart0_getchar() == 'p'){
 					while(1){;}
-				
+					/*
 					Stop_PIT();
 					__disable_irq();
+					
 					//if(camSwitch == 1){								//Print Camera 1
 						put("\r\nCamera 1:");
 						put("\r\nPing1: \r\n");
@@ -598,6 +599,7 @@ int main (void) {
 						put("\r\nB_IFB: ");
 						intToHex(B_IFB); put(ascii); put("\r\n");
 					//}
+					*/
 					put(str3);
 					while(1){
 						key = uart0_getchar();
