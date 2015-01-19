@@ -231,19 +231,6 @@ void TPM1_IRQHandler(void) {
 		TPM1->CONTROLS[0].CnSC |= TPM_CnSC_CHF_MASK;}
 	TPM1->CONTROLS[0].CnV = PW1;
 
-	/*
-	// modify pulse width for TPM1_CH0
-	if (!TPMflag) {
-		TPM1->CONTROLS[0].CnV = ++PW1;
-		if (PW1 >= 6000) //2.0ms
-			TPMflag = 1;
-	} 
-	else {
-		TPM1->CONTROLS[0].CnV = --PW1;
-		if (PW1 <= 3000) //1.0ms
-			TPMflag = 0;
-	}
-	*/
 	counter++;
 	if (counter >= 50) {
 		counter = 0;
@@ -268,7 +255,6 @@ void Init_PIT(unsigned period_us) {
 	SIM->SCGC6 |= SIM_SCGC6_PIT_MASK;											//Enable clock gate to PIT module
 	PIT->MCR &= ~PIT_MCR_MDIS_MASK;												//Enable PIT clock module
 	PIT->MCR |= PIT_MCR_FRZ_MASK;													//Freeze clocks when debugging
-	//PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(2400); 				//Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 10kHz
 	PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(24*period_us);	//Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 100Hz
 	PIT->CHANNEL[0].TCTRL &= PIT_TCTRL_CHN_MASK;					//Disable chaining
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK;					//Enables timer interrupts when timer reaches 0
@@ -503,46 +489,6 @@ int main (void) {
 				}
 				else if(uart0_getchar() == 'p'){
 					while(1){;}
-					/*
-					Stop_PIT();
-					__disable_irq();
-					
-					//if(camSwitch == 1){								//Print Camera 1
-						put("\r\nCamera 1:");
-						put("\r\nPing1: \r\n");
-						while(count<128){
-							intToHex(ping1[count]);
-							put(ascii); put(" ");
-							count++;}
-						count=0;
-						put("\r\nPong1: \r\n");
-						while(count<128){
-							intToHex(pong1[count]);
-							put(ascii); put(" ");
-							count++;}
-						put("\r\n");
-					//}
-					//else if (camSwitch == 2){					//Print Camera 2
-						count=0;
-						put("\r\nCamera 2:");
-						put("\r\nPing2:\r\n");
-						while(count<128){
-							intToHex(ping2[count]);
-							put(ascii); put(" ");
-							count++;}
-						count=0;
-						put("\r\nPong2: \r\n");
-						while(count<128){
-							intToHex(pong2[count]);
-							put(ascii); put(" ");
-							count++;}
-						put("\r\n");
-						put("\r\nA_IFB: ");
-						intToHex(A_IFB); put(ascii);
-						put("\r\nB_IFB: ");
-						intToHex(B_IFB); put(ascii); put("\r\n");
-					//}
-					*/
 					put(str3);
 					while(1){
 						key = uart0_getchar();
