@@ -59,71 +59,14 @@ void intToHex(int c){
 	while (c>=16){
 		count1++;
 	  c = c-16;}
-	if (count1 ==0){
-		ascii[0] = '0';}
-	else if (count1 == 1) {
-		ascii[0] = '1';}
-	else if (count1 == 2) {
-		ascii[0] = '2';}
-	else if (count1 == 3) {
-		ascii[0] = '3';}
-	else if (count1 == 4) {
-		ascii[0] = '4';}
-	else if (count1 == 5) {
-		ascii[0] = '5';}
-	else if (count1 == 6) {
-		ascii[0] = '6';}
-	else if (count1 == 7) {
-		ascii[0] = '7';}
-	else if (count1 == 8) {
-		ascii[0] = '8';}
-	else if (count1 == 9) {
-		ascii[0] = '9';}
-	else if (count1 == 10) {
-		ascii[0] = 'A';}
-	else if (count1 == 11) {
-		ascii[0] = 'B';}
-	else if (count1 == 12) {
-		ascii[0] = 'C';}
-	else if (count1 == 13) {
-		ascii[0] = 'D';}
-	else if (count1 == 14) {
-		ascii[0] = 'E';}
-	else if (count1 == 15) {
-		ascii[0] = 'F';}
-	
-	if (c==0){
-		ascii[1] = '0';}
-	else if (c==1){
-		ascii[1] = '1';}
-	else if (c==2){
-		ascii[1] = '2';}
-	else if (c==3){
-		ascii[1] = '3';}
-	else if (c==4){
-		ascii[1] = '4';}
-	else if (c==5){
-		ascii[1] = '5';}
-	else if (c==6){
-		ascii[1] = '6';}
-	else if (c==7){
-		ascii[1] = '7';}
-	else if (c==8){
-		ascii[1] = '8';}
-	else if (c==9){
-		ascii[1] = '9';}
-	else if (c==10){
-		ascii[1] = 'A';}
-	else if (c==11){
-		ascii[1] = 'B';}
-	else if (c==12){
-		ascii[1] = 'C';}
-	else if (c==13){
-		ascii[1] = 'D';}
-	else if (c==14){
-		ascii[1] = 'E';}
-	else if (c==15){
-		ascii[1] = 'F';}
+  if (count1 >= 0 && count1 <= 9)
+    ascii[0] = count1 + 48; //converts from numeric 0 to ASCII '0'
+  else if (count1 >= 10 && count1 <= 15)
+    ascii[0] = count1 + 55; //converts from numeric 10 to ASCII 'A'
+  if (c >= 0 && c <= 9)
+    ascii[1] = count1 + 48; //converts from numeric 0 to ASCII '0'
+  else if (count1 >= 10 && count1 <= 15)
+    ascii[1] = count1 + 55; //converts from numeric 10 to ASCII 'A'
 }
 
 void put(char *ptr_str)
