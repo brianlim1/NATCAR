@@ -415,17 +415,17 @@ int main (void) {
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
 					voltMid2 = voltMid2/voltCounter2;
-          /*
+
           //Adjust servo here
 					//looks at camera 1, (should be mounted on the left side of the car)
 					if(voltMid1 > 39){
-						PW1-=300;}	//Slight right turn
+						PW1=4000;}	//Slight right turn
 					//looks at camera 2, (should be mounted on the right side of the car)
 					if(voltMid2 < 88){
-						PW1+=300;}	//Slight left turn
+						PW1=5000;}	//Slight left turn
 					else{PW1=4500;}	//Centers the servo
-          */
-					TPM1->CONTROLS[0].CnV = PW1;
+
+          TPM1->CONTROLS[0].CnV = PW1;
 					put("Left Cam: ");put(zeroOne1); //put("\r\n");
 					sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
 					put("Right : ");put(zeroOne2); //put("\r\n");
