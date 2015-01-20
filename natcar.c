@@ -440,10 +440,10 @@ int main (void) {
 					voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line
 
           //Adjust servo here
-          if (voltMid1 > 30 && VoltMid2 == -1){
+          if (voltMid1 > 30 && voltMid2 == -1){
 //            crashAndDump(str, "Right Turn");
 						PW1=4000;}	//Too far left. Slight right turn.
-          else if (voltMid2 < 80 && voltMid2 > 0 && VoltMid1 == -1){
+          else if (voltMid2 < 80 && voltMid2 > 0 && voltMid1 == -1){
 //            crashAndDump(str, "Left Turn");
             PW1 = 5000;
           }	//Too far right. Slight left turn.
