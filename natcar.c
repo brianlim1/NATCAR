@@ -12,8 +12,7 @@
 void init_ADC0(void);
 
 volatile unsigned short PW1 = 4500;	//initialize as 1.5ms
-volatile unsigned short PWa = 300;	//initialize as 0.1ms
-volatile unsigned short PWb = 300;	//initialize as 0.1ms
+volatile unsigned short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
 volatile char LEDflag = 0;
@@ -197,8 +196,7 @@ void Init_PWM(void) {
 	TPM1->MOD = 60000-1;	// Freq. = (48 MHz / 16) / 60000 = 50 Hz
 	TPM0->MOD = 600-1;	// Freq. = (48 MHz / 16) / 600 = 5 kHz
 	TPM1->CONTROLS[0].CnV = PW1;
-	TPM0->CONTROLS[0].CnV = PWb;
-	TPM0->CONTROLS[2].CnV = PWa;
+	TPM0->CONTROLS[2].CnV = PW;
 	
 	// set TPM0/1 to up-counter, divide by 16 prescaler and clock mode
 	TPM1->SC = (/*TPM_SC_TOIE_MASK | */TPM_SC_CMOD(1) | TPM_SC_PS(4));
@@ -310,13 +308,11 @@ void enable_HBridge(void){
   MAIN function
  *----------------------------------------------------------------------------*/
 int main (void) {
-	char str[] = "\r\nTurn on power supply, then press SW2\r\n";
-	char str2[] = "\r\nSet duty cycles using POT1 and POT2\r\n";
-	char str3[] = "\r\nPress 'c' to continue scanning cameras or 'q' to quit\r\n";
-	char str4[80];
+  //variables
+	char str[80];
 	int uart0_clk_khz;
 	int SW1_Not_Pressed = 1;
-
+  //initialization code
 	SIM->SCGC5 |= (SIM_SCGC5_PORTA_MASK
 	| SIM_SCGC5_PORTB_MASK
 	| SIM_SCGC5_PORTC_MASK
@@ -324,72 +320,36 @@ int main (void) {
 	| SIM_SCGC5_PORTE_MASK );
 	SIM->SOPT2 |= SIM_SOPT2_PLLFLLSEL_MASK; // set PLLFLLSEL to select the PLL for this clock source
 	SIM->SOPT2 |= SIM_SOPT2_UART0SRC(1); // select the PLLFLLCLK as UART0 clock source
-	
 	PORTA->PCR[1] = PORT_PCR_MUX(0x2);		// Enable the UART0_RX function on PTA1
 	PORTA->PCR[2] = PORT_PCR_MUX(0x2);		// Enable the UART0_TX function on PTA2
-	
 	uart0_clk_khz = (48000000 / 1000); // UART0 clock frequency will equal half the PLL frequency	
 	uart0_init (uart0_clk_khz, TERMINAL_BAUD);
-	
 	SystemCoreClockUpdate();
 	LED_Initialize();
 	Init_PWM();
 	Init_PIT(40000);													//Load countdown value to Channel 0 of PIT; interrupt frequency = 50Hz
 	Init_ADC();
 	disable_HBridge();
-	put(str);		//Turn on power supply, then press SW2
 
+  //Wait for potentiometers loop
+  put("\r\nTurn on power supply, then press SW2\r\n");		//Turn on power supply, then press SW2
 	while (!(FPTC->PDIR & (1UL << 17))){;}	//Poll until SW2 has been pressed
-	
 	enable_HBridge();
-	put(str2);	//Set duty cycles using POT1 and POT2
-	//FPTC->PSOR = (1UL << 2);
-	//FPTC->PSOR = (1UL << 4);
-	
-	
-	while (1) {
-	/*
-//__wfi();
-	while(!uart0_getchar_present()){;}
-	if(uart0_getchar() == 'R')
-		{PW1 = 3000;}
-	else if(uart0_getchar() == 'r')
-		{PW1 = 3750;}
-	else if(uart0_getchar() == 'C' || uart0_getchar() == 'c')
-		{PW1 = 4500;}
-	else if(uart0_getchar() == 'l')
-		{PW1 = 5250;}
-	else if(uart0_getchar() == 'L')
-		{PW1 = 6000;}
-	else if(uart0_getchar() == 'q' || uart0_getchar() == 'Q')
-		{return 0;}
-	else if(uart0_getchar() == '+')
-		{if (PW1 < 6000){
-			PW1+=50;}}
-	else if(uart0_getchar() == '-')
-		{if (PW1 > 3000){
-			PW1-=50;}}
-			*/ //block comment: Servo Program controls from Lab5
+  put("\r\nSet duty cycles using POT1 and POT2\r\n");	//Set duty cycles using POT1 and POT2
+
+  while (1) {
 		while(SW1_Not_Pressed){
 			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);		//Start ADC conversion on ADC0_SE13 (PTB3; POT1)
 			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
 			dutyA = ADC0->R[0];		//Read 8-bit digital value of POT1
-			sprintf(str4, "%d", dutyA); put(str4); put(" ");
-			
-			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(12);		//Start ADC conversion on ADC0_SE12 (PTB2; POT2)
-			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
-			dutyB = ADC0->R[0];		//Read 8-bit digital value of POT2
-			sprintf(str4, "%d", dutyB); put(str4); put("\r\n");
-			
-			PWa = (600*dutyA)/255;				//Multiply max pulse width by percentage according to POT1
-			PWb = (600*dutyB)/255;				//Multiply max pulse width by percentage according to POT2
-			TPM0->CONTROLS[0].CnV = PWb;	//Set pulse width of H_Bridge A according to POT1
-			TPM0->CONTROLS[2].CnV = PWa;	//Set pulse width of H_Bridge B according to POT2
-	
+			sprintf(str, "%d", dutyA); put(str); put("\r\n");
+			PW = (600*dutyA)/255;				//Multiply max pulse width by percentage according to POT1
+			TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+			TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT2
 			if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
-		}
+		}//Loop for waiting for potentiometers to be adjusted until SW1 is pressed
 		Start_PIT();
-		while(!(SW1_Not_Pressed)){
+		while(1){
 			if (Done){
 				if(!uart0_getchar_present()){
 					count=0;
@@ -462,12 +422,8 @@ int main (void) {
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
 					voltMid2 = voltMid2/voltCounter2;
-					//Adjust servo here
-					//Right now, the program will compare the calculated midpoint of the black line to a preset value, then adjust the servo PWM.
-					//The range of values of the midpoint is from 14-113, except when the black line is out of range, then the midpoint defaults to -1.
-					//Ideally, we want the servo to adjust more or less depending on how big the error is. I haven't done that yet.
-					//The code here doesn't work correctly, it was just rough code used to finish lab 7. It is programmed to stay within a straight line, but not to do turns
-					/*
+          /*
+          //Adjust servo here
 					//looks at camera 1, (should be mounted on the left side of the car)
 					if(voltMid1 > 39){
 						PW1-=300;}	//Slight right turn
@@ -475,28 +431,26 @@ int main (void) {
 					if(voltMid2 < 88){
 						PW1+=300;}	//Slight left turn
 					else{PW1=4500;}	//Centers the servo
-					*/
-					
+          */
 					TPM1->CONTROLS[0].CnV = PW1;
 					put("Cam1: ");put(zeroOne1); //put("\r\n");
-					sprintf(str4, "%d", voltMid1); put(" "); put(str4); put("\r\n");
+					sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
 					put("Cam2: ");put(zeroOne2); //put("\r\n");
-					sprintf(str4, "%d", voltMid2); put(" "); put(str4); put("\r\n");
+					sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
 					__enable_irq();
 					Done=0;count=0;
 					sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
 					sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
 				}
 				else if(uart0_getchar() == 'p'){
-					while(1){;}
-					put(str3);
+          put("\r\nPress 'c' to continue scanning cameras or 'q' to quit\r\n");
 					while(1){
 						key = uart0_getchar();
 						if(key == 'q'){
 							put("\r\nQuitting Program\r\n");
 							disable_HBridge();
 							return 0;}
-						else if(key == 'c'){
+						if(key == 'c'){
 							__enable_irq();
 							Start_PIT();
 							count=0; Done=0;
@@ -507,6 +461,6 @@ int main (void) {
 				intToHex(B_IFB); put(ascii); put("\r\n");
 			}
 			else if(!Done){continue;}
-		}
-	}
+		}//Loop through the main sequence forever
+	}//main loop
 }
