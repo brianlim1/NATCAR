@@ -441,12 +441,18 @@ int main (void) {
 					voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line
 
           //Adjust servo here
+		  //Tested several times doing right turns, the control loop doesn't correctly do turns on the track we're getting checked.
+		  //When the car veers too far left or right, the camera will capture the carpet, which it will identify as part of the black line
+		  //This will cause the midpoint to be calculated incorrectly, i.e. make it appear farther than it actually is, so the car thinks
+		  //it's still within the allowable range
           if (voltMid1 > 30 && voltMid2 == -1){
 //            crashAndDump(str, "Right Turn");
-						PW1=5000;}	//Too far left. Slight right turn.
+			  put("Right Turn\r\n");
+			PW1=5700;}	//Too far left. Slight right turn.
           else if (voltMid2 < 80 && voltMid2 > 0 && voltMid1 == -1){
 //            crashAndDump(str, "Left Turn");
-            PW1 = 4000;
+			  put("Left Turn\r\n");
+            PW1 = 3300;
           }	//Too far right. Slight left turn.
 					else{PW1=4500;}	//Centers the servo. Servo is flawed; 4500 isn't quite the center but it should be.
 
