@@ -445,6 +445,7 @@ int main (void) {
 		  //When the car veers too far left or right, the camera will capture the carpet, which it will identify as part of the black line
 		  //This will cause the midpoint to be calculated incorrectly, i.e. make it appear farther than it actually is, so the car thinks
 		  //it's still within the allowable range
+		  //The control loop will work correctly if the ground is light-colored
           if (voltMid1 > 30 && voltMid2 == -1){
 //            crashAndDump(str, "Right Turn");
 			  put("Right Turn\r\n");
