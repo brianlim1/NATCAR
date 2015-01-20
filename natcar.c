@@ -294,13 +294,15 @@ void enable_HBridge(void){
 /*----------------------------------------------------------------------------
 Utility functions
 *----------------------------------------------------------------------------*/
-void crashAndDump(char str[80])
+void crashAndDump(char str[80], char err[80])
 {
   //Crash
   PW = 0;
   TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
   TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
-  put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
+  put("\r\n");
+  put(err);
+  put("You wanted me to die in this situation. Here's the last thing I saw:\r\n");
   //Dump
   put("Left Cam: "); put(zeroOne1); //put("\r\n");
   sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
@@ -438,13 +440,11 @@ int main (void) {
 					voltMid2 = voltMid2/voltCounter2;
 
           //Adjust servo here
-					//looks at camera 1, (should be mounted on the left side of the car)
           if (voltMid1 > 39 && voltMid2 < 88){
-            crashAndDump(str);
+            crashAndDump(str, "Right Turn");
 						PW1=4000;}	//Too far left on straightaway. Slight right turn.
-					//looks at camera 2, (should be mounted on the right side of the car)
           else if (voltMid1 < 88 && voltMid2 > 39){
-            crashAndDump(str);
+            crashAndDump(str, "Left Turn");
             PW1 = 5000;
           }	//Too far right on straightaway. Slight left turn.
 					else{PW1=4500;}	//Centers the servo
