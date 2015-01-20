@@ -317,6 +317,7 @@ void crashAndDump(char str[80], char err[80])
     PW = (600 * dutyA) / 255;				//Multiply max pulse width by percentage according to POT1
     TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+    return;
   }
 }//void crashAndDump()
 
