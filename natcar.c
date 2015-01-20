@@ -35,7 +35,6 @@ char ping2[130]; char pong2[130];
 char zeroOne1[130]; char zeroOne2[130];
 char ascii[2];
 char key;
-int A_IFB; int B_IFB;
 
 #define LED_RED    0
 #define LED_GREEN  1
@@ -132,12 +131,6 @@ void ADC0_IRQHandler() {
 			else if(camSwitch == 2){
 				pong2[i] = ADC0->R[0];}}				//Read AO2 value to pong2 if ping2 is done
 	}
-	else if(i>=128){
-		if(CLKcount == 129){
-			A_IFB = ADC0->R[0];}
-		else if(CLKcount == 130){
-			B_IFB = ADC0->R[0];}
-		}
 	if(camSwitch == 1){									//If AO1 has just been converted, start conversion on AO2
 		camSwitch = 2;
 		ADC0->CFG2 |= ADC_CFG2_MUXSEL_MASK;
@@ -332,10 +325,10 @@ int main (void) {
 	disable_HBridge();
 
   //Wait for potentiometers loop
-  put("\r\nTurn on power supply, then press SW2\r\n");		//Turn on power supply, then press SW2
+  put("\r\nTurn on power supply, then press SW2 (B)\r\n");
 	while (!(FPTC->PDIR & (1UL << 17))){;}	//Poll until SW2 has been pressed
 	enable_HBridge();
-  put("\r\nSet duty cycles using POT1 and POT2\r\n");	//Set duty cycles using POT1 and POT2
+  put("\r\nSet duty cycles using POT1 (A), then press SW1 (A) \r\n");
 
   while (1) {
 		while(SW1_Not_Pressed){
@@ -345,7 +338,7 @@ int main (void) {
 			sprintf(str, "%d", dutyA); put(str); put("\r\n");
 			PW = (600*dutyA)/255;				//Multiply max pulse width by percentage according to POT1
 			TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
-			TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT2
+			TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
 			if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
 		}//Loop for waiting for potentiometers to be adjusted until SW1 is pressed
 		Start_PIT();
@@ -433,9 +426,9 @@ int main (void) {
 					else{PW1=4500;}	//Centers the servo
           */
 					TPM1->CONTROLS[0].CnV = PW1;
-					put("Cam1: ");put(zeroOne1); //put("\r\n");
+					put("Left Cam: ");put(zeroOne1); //put("\r\n");
 					sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
-					put("Cam2: ");put(zeroOne2); //put("\r\n");
+					put("Right : ");put(zeroOne2); //put("\r\n");
 					sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
 					__enable_irq();
 					Done=0;count=0;
@@ -457,8 +450,6 @@ int main (void) {
 							break;}
 					}
 				}
-				intToHex(A_IFB); put(ascii); put(" ");
-				intToHex(B_IFB); put(ascii); put("\r\n");
 			}
 			else if(!Done){continue;}
 		}//Loop through the main sequence forever
