@@ -302,7 +302,7 @@ void crashAndDump(char str[80], char err[80])
   TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
   put("\r\n");
   put(err);
-  put("You wanted me to die in this situation. Here's the last thing I saw:\r\n");
+  put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
   //Dump
   put("Left Cam: "); put(zeroOne1); //put("\r\n");
   sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
@@ -440,13 +440,13 @@ int main (void) {
 					voltMid2 = voltMid2/voltCounter2;
 
           //Adjust servo here
-          if (voltMid1 > 39 && voltMid2 < 88){
+          if (voltMid1 > 80 && voltMid2 < 30){
             crashAndDump(str, "Right Turn");
-						PW1=4000;}	//Too far left on straightaway. Slight right turn.
-          else if (voltMid1 < 88 && voltMid2 > 39){
+						PW1=4000;}	//Too far left on straightaway. Slight right (?) turn.
+          else if (voltMid1 < 30 && voltMid2 > 80){
             crashAndDump(str, "Left Turn");
             PW1 = 5000;
-          }	//Too far right on straightaway. Slight left turn.
+          }	//Too far right on straightaway. Slight left (?) turn.
 					else{PW1=4500;}	//Centers the servo
 
           TPM1->CONTROLS[0].CnV = PW1;
