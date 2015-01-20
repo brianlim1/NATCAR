@@ -6,7 +6,7 @@
 #include "MKL25Z4.h"
 #include "uart.h"
 #include "main.h"
-#include "adc16.h"//f
+#include "adc16.h"
 #include "stdio.h"
 
 void init_ADC0(void);
@@ -332,7 +332,7 @@ int main (void) {
 
   while (1) {
 		while(SW1_Not_Pressed){
-			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);		//Start ADC conversion on ADC0_SE13 (PTB3; POT1)
+			ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);		//Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
 			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
 			dutyA = ADC0->R[0];		//Read 8-bit digital value of POT1
 			sprintf(str, "%d", dutyA); put(str); put("\r\n");
