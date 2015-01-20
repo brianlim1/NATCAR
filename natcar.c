@@ -116,7 +116,6 @@ void Init_ADC(void) {
 
 
 void ADC0_IRQHandler() {
-	
 	//120ns
 	NVIC_ClearPendingIRQ(ADC0_IRQn);		//Clear Interrupt Request
 	if(i<128){
@@ -430,17 +429,27 @@ int main (void) {
 					sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
 				}
 				else if(uart0_getchar() == 'p'){
-          put("\r\nPress 'c' to continue scanning cameras or 'q' to quit\r\n");
+          PW = 0;
+          put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
 					while(1){
 						key = uart0_getchar();
 						if(key == 'q'){
 							put("\r\nQuitting Program\r\n");
 							disable_HBridge();
 							return 0;}
-						if(key == 'c'){
+            if (key == 'r'){
+              put("\r\nResampling POT1...\r\n");
+              ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);		//Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
+              while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; }		// wait for conversion to complete (polling)
+              dutyA = ADC0->R[0];		//Read 8-bit digital value of POT1
+              put("New measurement from POT1: ");
+              sprintf(str, "%d", dutyA); put(str); put("\r\n");
+            }
+            if (key == 'c'){
 							__enable_irq();
 							Start_PIT();
 							count=0; Done=0;
+              PW = (600 * dutyA) / 255;				//Multiply max pulse width by percentage according to POT1
 							break;}
 					}
 				}
