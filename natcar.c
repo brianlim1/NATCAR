@@ -430,6 +430,8 @@ int main (void) {
 				}
 				else if(uart0_getchar() == 'p'){
           PW = 0;
+          TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+          TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
           put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
 					while(1){
 						key = uart0_getchar();
@@ -450,7 +452,10 @@ int main (void) {
 							Start_PIT();
 							count=0; Done=0;
               PW = (600 * dutyA) / 255;				//Multiply max pulse width by percentage according to POT1
-							break;}
+              TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+              TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+              break;
+            }
 					}
 				}
 			}
