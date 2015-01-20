@@ -421,7 +421,7 @@ int main (void) {
 					if(voltMid1 > 39){
 						PW1=4000;}	//Slight right turn
 					//looks at camera 2, (should be mounted on the right side of the car)
-					if(voltMid2 < 88){
+					else if(voltMid2 < 88){
 						PW1=5000;}	//Slight left turn
 					else{PW1=4500;}	//Centers the servo
 
