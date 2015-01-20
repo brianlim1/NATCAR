@@ -437,13 +437,13 @@ int main (void) {
 						put("\r\nPong: \r\n");}
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
-					voltMid2 = voltMid2/voltCounter2; //bigger number means the line is closer to the car's left (-1 means no line)
+					voltMid2 = voltMid2/voltCounter2; //bigger number means the line is closer to the car's edge (?) (-1 means no line)
 
           //Adjust servo here
-          if (voltMid1 > 80){
+          if (voltMid1 > 30){
 //            crashAndDump(str, "Right Turn");
 						PW1=4000;}	//Too far left. Slight right turn.
-          else if (voltMid2 < 30 && voltMid2 > 0){
+          else if (voltMid2 < 80 && voltMid2 > 0){
 //            crashAndDump(str, "Left Turn");
             PW1 = 5000;
           }	//Too far right. Slight left turn.
