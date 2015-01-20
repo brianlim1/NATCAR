@@ -290,6 +290,34 @@ void disable_HBridge(void){
 void enable_HBridge(void){
 	FPTE->PSOR = (1UL << 21);}
 
+
+/*----------------------------------------------------------------------------
+Utility functions
+*----------------------------------------------------------------------------*/
+void crashAndDump()
+{
+  //Crash
+  PW = 0;
+  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+  TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+  put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
+  //Dump
+  put("Left Cam: "); put(zeroOne1); //put("\r\n");
+  sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
+  put("Right Cam: "); put(zeroOne2); //put("\r\n");
+  sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
+  put("Press any key to continue!\r\n");
+  while (1){
+    key = uart0_getchar();
+    __enable_irq();
+    Start_PIT();
+    count = 0; Done = 0;
+    PW = (600 * dutyA) / 255;				//Multiply max pulse width by percentage according to POT1
+    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+    TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+  }
+}//void crashAndDump()
+
 /*----------------------------------------------------------------------------
   MAIN function
  *----------------------------------------------------------------------------*/
@@ -412,10 +440,13 @@ int main (void) {
           //Adjust servo here
 					//looks at camera 1, (should be mounted on the left side of the car)
           if (voltMid1 > 39 && voltMid2 < 88){
+            crashAndDump();
 						PW1=4000;}	//Too far left on straightaway. Slight right turn.
 					//looks at camera 2, (should be mounted on the right side of the car)
           else if (voltMid1 < 88 && voltMid2 > 39){
-						PW1=5000;}	//Too far right on straightaway. Slight left turn.
+            crashAndDump();
+            PW1 = 5000;
+          }	//Too far right on straightaway. Slight left turn.
 					else{PW1=4500;}	//Centers the servo
 
           TPM1->CONTROLS[0].CnV = PW1;
@@ -463,3 +494,4 @@ int main (void) {
 		}//Loop through the main sequence forever
 	}//main loop
 }
+
