@@ -428,7 +428,7 @@ int main (void) {
           TPM1->CONTROLS[0].CnV = PW1;
 					put("Left Cam: ");put(zeroOne1); //put("\r\n");
 					sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
-					put("Right : ");put(zeroOne2); //put("\r\n");
+					put("Right Cam: ");put(zeroOne2); //put("\r\n");
 					sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
 					__enable_irq();
 					Done=0;count=0;
