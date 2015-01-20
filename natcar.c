@@ -6,7 +6,7 @@
 #include "MKL25Z4.h"
 #include "uart.h"
 #include "main.h"
-#include "adc16.h"
+#include "adc16.h"//f
 #include "stdio.h"
 
 void init_ADC0(void);
