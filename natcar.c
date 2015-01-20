@@ -356,13 +356,13 @@ int main (void) {
 									{zeroOne1[count] = '1';}								//If greater than threshold, black/white array gets 1
 								else if(ping1[count] < voltThreshold1){	//If less than threshold, black/white array gets 0
 									zeroOne1[count] = '0';																		
-									voltMid1 = voltMid1 + count;						//Add middle-of-black-line index
+									voltMid1 += count;						//Add middle-of-black-line index
 									voltCounter1++;}				//Increment middle-of-black-line counter
 								if(ping2[count] >= voltThreshold2)
 									{zeroOne2[count] = '1';}
 								else if(ping2[count] < voltThreshold2){
 									zeroOne2[count] = '0';
-									voltMid2 = voltMid2 + count;
+									voltMid2 += count;
 									voltCounter2++;}
 								//End voltage scheme
 							}
@@ -389,13 +389,13 @@ int main (void) {
 									{zeroOne1[count] = '1';}
 								else if(pong1[count] < voltThreshold1){
 									zeroOne1[count] = '0';
-									voltMid1 = voltMid1 + count;
+									voltMid1 += count;
 									voltCounter1++;}
 								if(pong2[count] >= voltThreshold2)
 									{zeroOne2[count] = '1';}
 								else if(pong2[count] < voltThreshold2){
 									zeroOne2[count] = '0';
-									voltMid2 = voltMid2 + count;
+									voltMid2 += count;
 									voltCounter2++;}
 								//End voltage scheme
 							}
