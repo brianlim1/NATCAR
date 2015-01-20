@@ -143,12 +143,6 @@ void ADC0_IRQHandler() {
 			camSwitch = 1;
 			ADC0->CFG2 |= ADC_CFG2_MUXSEL_MASK;
 			ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(6);}
-		else if(CLKcount ==129){
-			ADC0->CFG2 &= ~(1UL << 4);	//Set channel to a
-			ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(7);}//Start ADC conversion on ADC0_SE7a (PTE23; H-Bridge_A_IFB)
-		else if(CLKcount ==130){
-			ADC0->CFG2 &= ~(1UL << 4);
-			ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(3);}	//Start ADC conversion on ADC0_SE3 (PTE22; H-Bridge_B_IFB)
 		else{
 			camSwitch=1;
 			if(buffSwitch == 1){						//When buffer 2 is full
