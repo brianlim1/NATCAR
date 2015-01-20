@@ -437,13 +437,13 @@ int main (void) {
 						put("\r\nPong: \r\n");}
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
-					voltMid2 = voltMid2/voltCounter2; //bigger number means the line is closer to the car's edge (?) (-1 means no line)
+					voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line
 
           //Adjust servo here
-          if (voltMid1 > 30){
+          if (voltMid1 > 30 && VoltMid2 == -1){
 //            crashAndDump(str, "Right Turn");
 						PW1=4000;}	//Too far left. Slight right turn.
-          else if (voltMid2 < 80 && voltMid2 > 0){
+          else if (voltMid2 < 80 && voltMid2 > 0 && VoltMid1 == -1){
 //            crashAndDump(str, "Left Turn");
             PW1 = 5000;
           }	//Too far right. Slight left turn.
