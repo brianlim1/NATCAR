@@ -411,11 +411,11 @@ int main (void) {
 
           //Adjust servo here
 					//looks at camera 1, (should be mounted on the left side of the car)
-					if(voltMid1 > 39){
-						PW1=4000;}	//Slight right turn
+          if (voltMid1 > 39 && voltMid2 < 88){
+						PW1=4000;}	//Too far left on straightaway. Slight right turn.
 					//looks at camera 2, (should be mounted on the right side of the car)
-					else if(voltMid2 < 88){
-						PW1=5000;}	//Slight left turn
+          else if (voltMid1 < 88 && voltMid2 > 39){
+						PW1=5000;}	//Too far right on straightaway. Slight left turn.
 					else{PW1=4500;}	//Centers the servo
 
           TPM1->CONTROLS[0].CnV = PW1;
