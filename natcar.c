@@ -437,16 +437,16 @@ int main (void) {
 						put("\r\nPong: \r\n");}
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
-					voltMid2 = voltMid2/voltCounter2;
+					voltMid2 = voltMid2/voltCounter2; //bigger number means the line is closer to the car's left
 
           //Adjust servo here
-          if (voltMid1 > 80 && voltMid2 < 30){
-            crashAndDump(str, "Right Turn");
-						PW1=4000;}	//Too far left on straightaway. Slight right (?) turn.
-          else if (voltMid1 < 30 && voltMid2 > 80){
-            crashAndDump(str, "Left Turn");
+          if (voltMid1 > 70){
+//            crashAndDump(str, "Right Turn");
+						PW1=4000;}	//Too far left. Slight right turn.
+          else if (voltMid2 < 20){
+//            crashAndDump(str, "Left Turn");
             PW1 = 5000;
-          }	//Too far right on straightaway. Slight left (?) turn.
+          }	//Too far right. Slight left turn.
 					else{PW1=4500;}	//Centers the servo
 
           TPM1->CONTROLS[0].CnV = PW1;
