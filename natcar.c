@@ -441,10 +441,10 @@ int main (void) {
 
           //Adjust servo here
           if (voltMid1 > 30 && voltMid2 == -1){
-//            crashAndDump(str, "Right Turn");
+            crashAndDump(str, "Right Turn");
 						PW1=4000;}	//Too far left. Slight right turn.
           else if (voltMid2 < 80 && voltMid2 > 0 && voltMid1 == -1){
-//            crashAndDump(str, "Left Turn");
+            crashAndDump(str, "Left Turn");
             PW1 = 5000;
           }	//Too far right. Slight left turn.
 					else{PW1=4500;}	//Centers the servo
