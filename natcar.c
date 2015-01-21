@@ -460,10 +460,10 @@ int main (void) {
 					
 					if (voltMid1 > 0 && voltMid2 == -1){
 						put("Right Turn\r\n");
-						PW1=5700;}
+						PW1=5300;}
 					else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
 						put("Left Turn\r\n");
-						PW1 = 3300;}
+						PW1 = 3700;}
 					else{PW1=4500;}
 
           TPM1->CONTROLS[0].CnV = PW1;
