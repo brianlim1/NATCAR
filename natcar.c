@@ -444,21 +444,30 @@ int main (void) {
 		  //Tested several times doing right turns, the control loop doesn't correctly do turns on the track we're getting checked.
 		  //When the car veers too far left or right, the camera will capture the carpet, which it will identify as part of the black line
 		  //This will cause the midpoint to be calculated incorrectly, i.e. make it appear farther than it actually is, so the car thinks
-		  //it's still within the allowable range
+		  //it's still within the allowable range4
 		  //The control loop will work correctly if the ground is light-colored
+/*
           if (voltMid1 > 30 && voltMid2 == -1){
-//            crashAndDump(str, "Right Turn");
-			  put("Right Turn\r\n");
-			PW1=5700;}	//Too far left. Slight right turn.
+//          crashAndDump(str, "Right Turn");
+						put("Right Turn\r\n");
+						PW1=5700;}	//Too far left. Slight right turn.
           else if (voltMid2 < 80 && voltMid2 > 0 && voltMid1 == -1){
-//            crashAndDump(str, "Left Turn");
-			  put("Left Turn\r\n");
-            PW1 = 3300;
-          }	//Too far right. Slight left turn.
+//          crashAndDump(str, "Left Turn");
+						put("Left Turn\r\n");
+            PW1 = 3300;}	//Too far right. Slight left turn.
 					else{PW1=4500;}	//Centers the servo. Servo is flawed; 4500 isn't quite the center but it should be.
+*/
+					
+					if (voltMid1 > 0 && voltMid2 == -1){
+						put("Right Turn\r\n");
+						PW1=5700;}
+					else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
+						put("Left Turn\r\n");
+						PW1 = 3300;}
+					else{PW1=4500;}
 
           TPM1->CONTROLS[0].CnV = PW1;
-					put("Left Cam: ");put(zeroOne1); //put("\r\n");
+					put("Left Cam:  ");put(zeroOne1); //put("\r\n");
 					sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
 					put("Right Cam: ");put(zeroOne2); //put("\r\n");
 					sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
