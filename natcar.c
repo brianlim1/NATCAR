@@ -352,6 +352,8 @@ int main (void) {
   put("\r\nTurn on power supply, then press SW2 (B)\r\n");
 	while (!(FPTC->PDIR & (1UL << 17))){;}	//Poll until SW2 has been pressed
 	enable_HBridge();
+  TPM0->CONTROLS[0].CnV = 0;	//Set pulse width of H_Bridge A to OFF
+  TPM0->CONTROLS[2].CnV = 0;	//Set pulse width of H_Bridge B to OFF
   put("\r\nSet duty cycles using POT1 (A), then press SW1 (A) \r\n");
 
   while (1) {
