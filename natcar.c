@@ -360,13 +360,13 @@ int main (void) {
 			while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {	; }		// wait for conversion to complete (polling)
 			dutyA = ADC0->R[0];		//Read 8-bit digital value of POT1
 			sprintf(str, "%d", dutyA); put(str); put("\r\n");
-			PW = (600*dutyA)/255;				//Multiply max pulse width by percentage according to POT1
-			TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
-			TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
 			if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
 		}//Loop for waiting for potentiometers to be adjusted until SW1 is pressed
 		Start_PIT();
-		while(1){
+    PW = (600 * dutyA) / 255;				//Multiply max pulse width by percentage according to POT1
+    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+    TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+    while (1){
 			if (Done){
 				if(!uart0_getchar_present()){
 					count=0;
