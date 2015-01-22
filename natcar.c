@@ -438,31 +438,13 @@ int main (void) {
 						put("\r\nPong: \r\n");}
 				
 					voltMid1 = voltMid1/voltCounter1;	//Calculate voltage midpoint by dividing all black indices with counter
-					voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line
-
-          //Adjust servo here
-		  //Tested several times doing right turns, the control loop doesn't correctly do turns on the track we're getting checked.
-		  //When the car veers too far left or right, the camera will capture the carpet, which it will identify as part of the black line
-		  //This will cause the midpoint to be calculated incorrectly, i.e. make it appear farther than it actually is, so the car thinks
-		  //it's still within the allowable range4
-		  //The control loop will work correctly if the ground is light-colored
-/*
-          if (voltMid1 > 30 && voltMid2 == -1){
-//          crashAndDump(str, "Right Turn");
-						put("Right Turn\r\n");
-						PW1=5700;}	//Too far left. Slight right turn.
-          else if (voltMid2 < 80 && voltMid2 > 0 && voltMid1 == -1){
-//          crashAndDump(str, "Left Turn");
-						put("Left Turn\r\n");
-            PW1 = 3300;}	//Too far right. Slight left turn.
-					else{PW1=4500;}	//Centers the servo. Servo is flawed; 4500 isn't quite the center but it should be.
-*/
+					voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
 					
 					if (voltMid1 > 0 && voltMid2 == -1){
-						put("Right Turn\r\n");
+            put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
 						PW1=5300;}
 					else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
-						put("Left Turn\r\n");
+            put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
 						PW1 = 3700;}
 					else{PW1=4500;}
 
