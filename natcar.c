@@ -37,7 +37,7 @@ char ping2[130]; char pong2[130];
 char zeroOne1[130]; char zeroOne2[130];
 char ascii[2];
 char key;
-short hill = 5; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
+short hill = 30; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
 short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
 
 #define LED_RED    0
@@ -375,13 +375,16 @@ int main (void) {
       ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
       while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;} //wait for conversion to complete (polling)
       dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
+      PW = (600 * dutyA) / 255;
+      //TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
+      //TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
       sprintf(str, "%d", dutyA); put(str); put("\r\n");
       if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
     } //Loop for waiting for potentiometers to be adjusted until SW1 is pressed
     Start_PIT();
     //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
 		//replace the above line with setting a variable to determine average DC motor feedback value (change PW if feedback value is more than 2 above or below this)
-		PW = 130;
+		PW = 240;
     TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
     while (1){
@@ -460,14 +463,15 @@ int main (void) {
 					
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            //PW1 = 5700;
+            PW1 = 5700;
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            //PW1 = 3600;
+            PW1 = 3600;
           }
           else{
             PW1=4670;
+						/*
             if ((L_IFB > (47+(hill*elevation))) | (R_IFB > 47+(hill*elevation))){
               //PW-=5;
             }
@@ -478,6 +482,7 @@ int main (void) {
 						if (PW > 600) PW = 600;
             TPM0->CONTROLS[0].CnV = PW;
             TPM0->CONTROLS[2].CnV = PW;
+						*/
           }
 
           TPM1->CONTROLS[0].CnV = PW1;
@@ -493,11 +498,11 @@ int main (void) {
           for(j=0;j<20;j++){
             sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
           put("\r\n");
-          //PW1=60;  L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
-          //PW1=65;  L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
-          //PW1=75;  L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
-          //PW1=90;  L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
-          //PW1=130; L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
+          //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
+          //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
+          //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
+          //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
+          //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
 					
 					
           __enable_irq();
@@ -529,7 +534,7 @@ int main (void) {
               Start_PIT();
               count=0; Done=0;
               //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
-              PW = 130;
+              PW = 240;
               TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
               TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
               break;
