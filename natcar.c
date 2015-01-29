@@ -191,6 +191,7 @@ void Init_PWM(void) {
   TPM1->MOD = 60000-1; //Freq. = (48 MHz / 16) / 60000 = 50 Hz (Servo update rate should be at 50Hz)
   TPM0->MOD = 600-1; //Freq. = (48 MHz / 16) / 600 = 5 kHz (Motor PWM frequency range is from 1-5kHz rate)
   TPM1->CONTROLS[0].CnV = PW1;
+	TPM0->CONTROLS[0].CnV = PW;
   TPM0->CONTROLS[2].CnV = PW;
 	
   //set TPM0/1 to up-counter, divide by 16 prescaler and clock mode
@@ -225,6 +226,7 @@ void TPM1_IRQHandler(void) {
   TPM1->CONTROLS[0].CnV = PW1;
 
   counter++;
+	/*
   if (counter >= 50) {
     counter = 0;
     if (PW1 >= 6000 || PW1 <= 3000){
@@ -233,7 +235,7 @@ void TPM1_IRQHandler(void) {
     else{
       FPTB->PSOR = led_mask[LED_RED];
       FPTB->PTOR = led_mask[LED_GREEN];}
-  }
+  }*/
 }
 
 void TPM0_IRQHandler(void){
@@ -446,19 +448,28 @@ int main (void) {
 					
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1=5300;}
+            PW1 = 5400;
+          }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = 3700;}
+            PW1 = 3600;
+          }
           else{PW1=4500;}
 
           TPM1->CONTROLS[0].CnV = PW1;
           put("Left Cam:  ");put(zeroOne1); //put("\r\n");
           sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
-					sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
+          sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
           put("Right Cam: ");put(zeroOne2); //put("\r\n");
           sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
-					sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
+          sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
+          //PW1=60;  L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
+          //PW1=65;  L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
+          //PW1=75;  L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
+          //PW1=90;  L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
+          //PW1=130; L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
+					
+					
           __enable_irq();
           Done=0;count=0;
           sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
