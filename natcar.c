@@ -11,7 +11,7 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4500;	//initialize as 1.5ms
+volatile unsigned short PW1 = 4670;	//initialize as 1.5ms
 volatile unsigned short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
@@ -448,13 +448,13 @@ int main (void) {
 					
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = 5400;
+            PW1 = 5700;
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
             PW1 = 3600;
           }
-          else{PW1=4500;}
+          else{PW1=4670;}
 
           TPM1->CONTROLS[0].CnV = PW1;
           put("Left Cam:  ");put(zeroOne1); //put("\r\n");
