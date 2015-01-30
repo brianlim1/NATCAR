@@ -236,7 +236,7 @@ void TPM1_IRQHandler(void) {
   TPM1->CONTROLS[0].CnV = PW1;
 
   counter++;
-	/*
+  /*
   if (counter >= 50) {
     counter = 0;
     if (PW1 >= 6000 || PW1 <= 3000){
@@ -318,17 +318,32 @@ void crashAndDump(char str[80], char err[80]){
   put(err);
   put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
   //Dump
+  /*
   put("Left Cam: "); put(zeroOne1); //put("\r\n");
   sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
   put("Right Cam: "); put(zeroOne2); //put("\r\n");
   sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
+*/
+  put("Left Cam:  ");put(zeroOne1); //put("\r\n");
+  sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
+  sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
+  put("Right Cam: ");put(zeroOne2); //put("\r\n");
+  sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
+  sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
+  sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+  sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
+  put("Feedback history = ");
+  for(j=0;j<20;j++){
+    sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
+  put("\r\n");
   put("Press any key to continue!\r\n");
   while (1){
     key = uart0_getchar();
     __enable_irq();
     Start_PIT();
     count = 0; Done = 0;
-    PW = (600 * dutyA) / 255;  //Multiply max pulse width by percentage according to POT1
+    //PW = (600 * dutyA) / 255;  //Multiply max pulse width by percentage according to POT1
+    PW = 170;
     TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
     return;
@@ -384,7 +399,7 @@ int main (void) {
     Start_PIT();
     //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
 		//replace the above line with setting a variable to determine average DC motor feedback value (change PW if feedback value is more than 2 above or below this)
-		PW = 240;
+    PW = 170;
     TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
     while (1){
@@ -471,19 +486,44 @@ int main (void) {
           }
           else{
             PW1=4670;
-						/*
-            if ((L_IFB > (47+(hill*elevation))) | (R_IFB > 47+(hill*elevation))){
-              //PW-=5;
-            }
-						else if ((L_IFB < 43+(hill*elevation)) | (R_IFB < 43+(hill*elevation))){
-              //PW+=5;
-            }
-						if (PW < 0) PW = 0;
-						if (PW > 600) PW = 600;
-            TPM0->CONTROLS[0].CnV = PW;
-            TPM0->CONTROLS[2].CnV = PW;
-						*/
           }
+					
+          if(elevation == 0){ //if elevation is flat ground
+            if((feedbackRing[19] - feedbackRing[0] >= 5) & (feedbackRing[0] > 5)){
+              //detect uphill
+              elevation = 1;
+              //crashAndDump(str, "uphill");
+            }
+            else{
+              PW=170;
+              TPM0->CONTROLS[0].CnV = PW;
+              TPM0->CONTROLS[2].CnV = PW;
+            }
+          }
+          else if(elevation == 1){ //if elevation is uphill
+            //Check if car is at top of hill
+            if(feedbackRing[0] - feedbackRing[19] >=25){
+              elevation = -1;
+              //crashAndDump(str, "top of hill");
+            }
+            else{
+              PW=350;
+              TPM0->CONTROLS[0].CnV = PW;
+              TPM0->CONTROLS[2].CnV = PW;
+            }
+            //Increase motor speed to get over hill
+          }
+          else if(elevation == -1){ //if elevation is downhill
+            if(feedbackRing[10] - feedbackRing[19] >=5){
+              elevation = 0;
+            }
+            else{
+						  PW=100;
+              TPM0->CONTROLS[0].CnV = PW;
+              TPM0->CONTROLS[2].CnV = PW;
+            }
+						//crashAndDump(str,"downhill");	
+          }						
 
           TPM1->CONTROLS[0].CnV = PW1;
           put("Left Cam:  ");put(zeroOne1); //put("\r\n");
@@ -534,7 +574,7 @@ int main (void) {
               Start_PIT();
               count=0; Done=0;
               //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
-              PW = 240;
+              PW = 170;
               TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
               TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
               break;
