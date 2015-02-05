@@ -11,7 +11,7 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4500;	//initialize as 1.5ms
+volatile unsigned short PW1 = 4600;	//initialize as 1.5ms
 volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
@@ -31,7 +31,7 @@ int voltMid1=0; int voltMid2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=160; int PW1init=4500;
+int PWinit=160; int PW1init=4600;
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -342,7 +342,6 @@ int main (void) {
   //variables
   char str[80];
   int uart0_clk_khz;
-  int SW1_Not_Pressed = 1;
   //initialization code
   SIM->SCGC5 |= (SIM_SCGC5_PORTA_MASK
   | SIM_SCGC5_PORTB_MASK
@@ -449,23 +448,33 @@ int main (void) {
           voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
 					
           if (voltMid1 > 0 && voltMid2 == -1){
-            put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            //PW1 = 5700; 	
+            put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
             PW1 = 4500 + 40*voltMid1;
+						if (PW1 > 5700){PW1 = 5700;}
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            //PW1 = 3400;
 						PW1 = 4500 - 40*(115-voltMid2);
+            if (PW1 < 3600){PW1 = 3600;}
           }
           else{
-            PW1 = PW1init;
+            if (PW1 > PW1init){
+              if (PW1-PW1init >= 400){
+                PW1-=400;
+              }
+              else {PW1=PW1init;}
+            }
+            if (PW1 < PW1init){
+              if (PW1init-PW1 >=400){
+                PW1+=400;}
+              else {PW1=PW1init;}
+            }
           }
           /*----------------------------------------------------------------------------
           Begin Elevation Check Region
           *----------------------------------------------------------------------------*/
           if(elevation == 0){ //if elevation is flat ground
-            if((feedbackRing[19] - feedbackRing[0] >= 6) & (feedbackRing[0] >= 10)){
+            if((feedbackRing[19] - feedbackRing[0] >= 4) & (feedbackRing[0] >= 10)){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               //crashAndDump(str, "uphill");
             }
@@ -479,8 +488,8 @@ int main (void) {
               //crashAndDump(str, "top of hill");
 							}
             else
-              PW=350; //Increase motor speed to get over hill
-              //PW=PWinit;
+              //Increase motor speed to get over hill
+              PW=360;
           }
           else if(elevation == -1){ //if elevation is downhill
 						//Check if car is at bottom of hill
@@ -489,7 +498,7 @@ int main (void) {
 							//crashAndDump(str, "downhill");
 						}
             else
-						  PW=18;
+						  PW=15;
           }
           TPM0->CONTROLS[0].CnV = PW;
           TPM0->CONTROLS[2].CnV = PW;
