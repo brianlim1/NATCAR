@@ -237,16 +237,6 @@ void TPM1_IRQHandler(void) {
   TPM1->CONTROLS[0].CnV = PW1;
 
   counter++;
-  /*
-  if (counter >= 50) {
-    counter = 0;
-    if (PW1 >= 6000 || PW1 <= 3000){
-      FPTB->PSOR = led_mask[LED_GREEN];
-      FPTB->PTOR = led_mask[LED_RED];}
-    else{
-      FPTB->PSOR = led_mask[LED_RED];
-      FPTB->PTOR = led_mask[LED_GREEN];}
-  }*/
 }
 
 void TPM0_IRQHandler(void){
