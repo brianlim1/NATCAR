@@ -491,7 +491,7 @@ int main (void) {
             if(feedbackRing[10] - feedbackRing[19] >=5)
               elevation = 0;
             else
-						  PW=70;
+						  PW=30;
           }
           TPM0->CONTROLS[0].CnV = PW;
           TPM0->CONTROLS[2].CnV = PW;
