@@ -368,20 +368,9 @@ int main (void) {
   enable_HBridge();
   TPM0->CONTROLS[0].CnV = 0; //Set pulse width of H_Bridge A to OFF
   TPM0->CONTROLS[2].CnV = 0; //Set pulse width of H_Bridge B to OFF
-  put("\r\nSet duty cycles using POT1 (A), then press SW1 (A) \r\n");
 
   while (1) {
-    while(SW1_Not_Pressed){
-      ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
-      while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;} //wait for conversion to complete (polling)
-      dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
-      PW = (600 * dutyA) / 255;
-      sprintf(str, "%d", dutyA); put(str); put("\r\n");
-      if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
-    } //Loop for waiting for potentiometers to be adjusted until SW1 is pressed
     Start_PIT();
-    //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
-		//replace the above line with setting a variable to determine average DC motor feedback value (change PW if feedback value is more than 2 above or below this)
     PW = PWinit;
     TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
