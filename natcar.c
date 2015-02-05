@@ -11,7 +11,7 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4670;	//initialize as 1.5ms
+volatile unsigned short PW1 = 4500;	//initialize as 1.5ms
 volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
@@ -31,7 +31,7 @@ int voltMid1=0; int voltMid2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=170;
+int PWinit=160; int PW1init=4500;
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -369,7 +369,7 @@ int main (void) {
   TPM0->CONTROLS[0].CnV = 0; //Set pulse width of H_Bridge A to OFF
   TPM0->CONTROLS[2].CnV = 0; //Set pulse width of H_Bridge B to OFF
 
-  while (1) {
+  while (1) {								
     Start_PIT();
     PW = PWinit;
     TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
@@ -450,37 +450,46 @@ int main (void) {
 					
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = 5700; 	
+            //PW1 = 5700; 	
+            PW1 = 4500 + 40*voltMid1;
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = 3400;
+            //PW1 = 3400;
+						PW1 = 4500 - 40*(115-voltMid2);
           }
           else{
-            PW1=4670;
+            PW1 = PW1init;
           }
           /*----------------------------------------------------------------------------
           Begin Elevation Check Region
           *----------------------------------------------------------------------------*/
           if(elevation == 0){ //if elevation is flat ground
-            if((feedbackRing[19] - feedbackRing[0] >= 6) & (feedbackRing[0] >= 10))
+            if((feedbackRing[19] - feedbackRing[0] >= 6) & (feedbackRing[0] >= 10)){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
+              //crashAndDump(str, "uphill");
+            }
             else
-              PW=170;
+              PW=PWinit;
           }
           else if(elevation == 1){ //if previous elevation was going uphill
             //Check if car is at top of hill
-            if(feedbackRing[0] - feedbackRing[19] >=20)
+            if(feedbackRing[0] - feedbackRing[19] >=5){
               elevation = -1;
+              //crashAndDump(str, "top of hill");
+							}
             else
               PW=350; //Increase motor speed to get over hill
+              //PW=PWinit;
           }
           else if(elevation == -1){ //if elevation is downhill
 						//Check if car is at bottom of hill
-            if(feedbackRing[10] - feedbackRing[19] >=5)
+            if(feedbackRing[10] - feedbackRing[19] >=5){
               elevation = 0;
+							//crashAndDump(str, "downhill");
+						}
             else
-						  PW=30;
+						  PW=18;
           }
           TPM0->CONTROLS[0].CnV = PW;
           TPM0->CONTROLS[2].CnV = PW;
