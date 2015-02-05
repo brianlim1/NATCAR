@@ -376,8 +376,6 @@ int main (void) {
       while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;} //wait for conversion to complete (polling)
       dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
       PW = (600 * dutyA) / 255;
-      //TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
-      //TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
       sprintf(str, "%d", dutyA); put(str); put("\r\n");
       if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}	//Check if SW1 has been pressed
     } //Loop for waiting for potentiometers to be adjusted until SW1 is pressed
@@ -472,46 +470,39 @@ int main (void) {
           else{
             PW1=4670;
           }
-					
+          /*----------------------------------------------------------------------------
+          Begin Elevation Check Region
+          *----------------------------------------------------------------------------*/
           if(elevation == 0){ //if elevation is flat ground
-            if((feedbackRing[19] - feedbackRing[0] >= 6) & (feedbackRing[0] >= 10)){
-              //detect uphill
-              elevation = 1;
-              //crashAndDump(str, "uphill");
-            }
-            else{
+            if((feedbackRing[19] - feedbackRing[0] >= 6) & (feedbackRing[0] >= 10))
+              elevation = 1; //detect uphill via rapid increase in DC motor feedback
+            else
               PW=170;
-              TPM0->CONTROLS[0].CnV = PW;
-              TPM0->CONTROLS[2].CnV = PW;
-            }
           }
-          else if(elevation == 1){ //if elevation is uphill
+          else if(elevation == 1){ //if previous elevation was going uphill
             //Check if car is at top of hill
-            if(feedbackRing[0] - feedbackRing[19] >=20){
+            if(feedbackRing[0] - feedbackRing[19] >=20)
               elevation = -1;
-              //crashAndDump(str, "top of hill");
-            }
-            else{
-              PW=350;
-              TPM0->CONTROLS[0].CnV = PW;
-              TPM0->CONTROLS[2].CnV = PW;
-            }
-            //Increase motor speed to get over hill
+            else
+              PW=350; //Increase motor speed to get over hill
           }
           else if(elevation == -1){ //if elevation is downhill
 						//Check if car is at bottom of hill
-            if(feedbackRing[10] - feedbackRing[19] >=5){
+            if(feedbackRing[10] - feedbackRing[19] >=5)
               elevation = 0;
-            }
-            else{
+            else
 						  PW=70;
-              TPM0->CONTROLS[0].CnV = PW;
-              TPM0->CONTROLS[2].CnV = PW;
-            }
-						
-						//crashAndDump(str,"downhill");	
-          }						
-
+          }
+          TPM0->CONTROLS[0].CnV = PW;
+          TPM0->CONTROLS[2].CnV = PW;
+          //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
+          //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
+          //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
+          //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
+          //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
+          /*----------------------------------------------------------------------------
+          End Elevation Check Region
+          *----------------------------------------------------------------------------*/
           TPM1->CONTROLS[0].CnV = PW1;
           put("Left Cam:  ");put(zeroOne1); //put("\r\n");
           sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
@@ -525,12 +516,6 @@ int main (void) {
           for(j=0;j<20;j++){
             sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
           put("\r\n");
-          //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
-          //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
-          //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
-          //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
-          //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
-					
 					
           __enable_irq();
           Done=0;count=0;
