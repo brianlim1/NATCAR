@@ -309,12 +309,6 @@ void crashAndDump(char str[80], char err[80]){
   put(err);
   put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
   //Dump
-  /*
-  put("Left Cam: "); put(zeroOne1); //put("\r\n");
-  sprintf(str, "%d", voltMid1); put(" "); put(str); put("\r\n");
-  put("Right Cam: "); put(zeroOne2); //put("\r\n");
-  sprintf(str, "%d", voltMid2); put(" "); put(str); put("\r\n");
-*/
   put("Left Cam:  ");put(zeroOne1); //put("\r\n");
   sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
   sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
