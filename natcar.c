@@ -43,7 +43,7 @@ short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
 
 #define LED_RED    0
 #define LED_GREEN  1
-#define LED_BLUE	 2
+#define LED_BLUE   2
 #define LED_A      0
 #define LED_B      1
 #define LED_C      2
@@ -142,7 +142,7 @@ void ADC0_IRQHandler() {
       for (j=0;j<19;j++){
         feedbackRing[j] = feedbackRing[j+1];
       }
-			feedbackRing[19] = avg_IFB;
+      feedbackRing[19] = avg_IFB;
     }
   }
   if(camSwitch == 1){ //If AO1 has just been converted, start conversion on AO2
@@ -158,11 +158,11 @@ void ADC0_IRQHandler() {
       ADC0->CFG2 |= ADC_CFG2_MUXSEL_MASK;
       ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(6);}
     else if (CLKcount == 129){
-		  ADC0->CFG2 &= ~(1UL << 4); //Set channel to a
-		  ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(7);} //Start ADC on ADC0_SE7a (PTE23; Motor R_IFB)
+      ADC0->CFG2 &= ~(1UL << 4); //Set channel to a
+      ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(7);} //Start ADC on ADC0_SE7a (PTE23; Motor R_IFB)
     else if (CLKcount == 130){
-		  ADC0->CFG2 &= ~(1UL << 4); //Set channel to a
-		  ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(3);} //Start ADC on ADC0_SE3 (PTE22; Motor L_IFB)
+      ADC0->CFG2 &= ~(1UL << 4); //Set channel to a
+      ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(3);} //Start ADC on ADC0_SE3 (PTE22; Motor L_IFB)
     else{
       camSwitch=1;
       if(buffSwitch == 1){ //When buffer 2 is full
@@ -172,7 +172,7 @@ void ADC0_IRQHandler() {
       Done = 1;
       if(i>=128){i=0;}
       FPTB->PTOR = (1UL << 0);}
-  FPTE->PTOR = (1UL << 1);}
+    FPTE->PTOR = (1UL << 1);}
 }
 
 
@@ -202,7 +202,7 @@ void Init_PWM(void) {
   TPM1->MOD = 60000-1; //Freq. = (48 MHz / 16) / 60000 = 50 Hz (Servo update rate should be at 50Hz)
   TPM0->MOD = 600-1; //Freq. = (48 MHz / 16) / 600 = 5 kHz (Motor PWM frequency range is from 1-5kHz rate)
   TPM1->CONTROLS[0].CnV = PW1;
-	TPM0->CONTROLS[0].CnV = PW;
+  TPM0->CONTROLS[0].CnV = PW;
   TPM0->CONTROLS[2].CnV = PW;
 	
   //set TPM0/1 to up-counter, divide by 16 prescaler and clock mode
@@ -450,11 +450,11 @@ int main (void) {
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
             PW1 = 4500 + 40*voltMid1;
-						if (PW1 > 5700){PW1 = 5700;}
+            if (PW1 > 5700){PW1 = 5700;}
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-						PW1 = 4500 - 40*(115-voltMid2);
+            PW1 = 4500 - 40*(115-voltMid2);
             if (PW1 < 3600){PW1 = 3600;}
           }
           else{
@@ -486,19 +486,19 @@ int main (void) {
             if(feedbackRing[0] - feedbackRing[19] >=5){
               elevation = -1;
               //crashAndDump(str, "top of hill");
-							}
+            }
             else
               //Increase motor speed to get over hill
               PW=360;
           }
           else if(elevation == -1){ //if elevation is downhill
-						//Check if car is at bottom of hill
+            //Check if car is at bottom of hill
             if(feedbackRing[10] - feedbackRing[19] >=5){
               elevation = 0;
-							//crashAndDump(str, "downhill");
-						}
+              //crashAndDump(str, "downhill");
+            }
             else
-						  PW=15;
+              PW=15;
           }
           TPM0->CONTROLS[0].CnV = PW;
           TPM0->CONTROLS[2].CnV = PW;
@@ -517,9 +517,9 @@ int main (void) {
           put("Right Cam: ");put(zeroOne2); //put("\r\n");
           sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
           sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
-					sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-					sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
-					put("Feedback history = ");
+          sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+          sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
+          put("Feedback history = ");
           for(j=0;j<20;j++){
             sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
           put("\r\n");
