@@ -446,16 +446,16 @@ int main (void) {
 				
           voltMid1 = voltMid1/voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
           voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
-					
+          /*----------------------------------------------------------------------------
+          Turn
+          *----------------------------------------------------------------------------*/
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
             PW1 = 4500 + 40*voltMid1;
-            if (PW1 > 5700){PW1 = 5700;}
           }
           else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
             put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
             PW1 = 4500 - 40*(115-voltMid2);
-            if (PW1 < 3600){PW1 = 3600;}
           }
           else{
             if (PW1 > PW1init){
@@ -470,8 +470,10 @@ int main (void) {
               else {PW1=PW1init;}
             }
           }
+          if (PW1 > 5700){ PW1 = 5700; }
+          if (PW1 < 3600){ PW1 = 3600; }
           /*----------------------------------------------------------------------------
-          Begin Elevation Check Region
+          Elevation Check
           *----------------------------------------------------------------------------*/
           if(elevation == 0){ //if elevation is flat ground
             if((feedbackRing[19] - feedbackRing[0] >= 4) & (feedbackRing[0] >= 10)){
@@ -509,11 +511,11 @@ int main (void) {
           //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
           //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
           //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
-          /*----------------------------------------------------------------------------
-          End Elevation Check Region
-          *----------------------------------------------------------------------------*/
           TPM1->CONTROLS[0].CnV = PW1;
-          put("Left Cam:  ");put(zeroOne1); //put("\r\n");
+          /*----------------------------------------------------------------------------
+          Print data
+          *----------------------------------------------------------------------------*/
+          put("Left Cam:  "); put(zeroOne1); //put("\r\n");
           sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
           sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
           put("Right Cam: ");put(zeroOne2); //put("\r\n");
