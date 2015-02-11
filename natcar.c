@@ -492,8 +492,7 @@ int main (void) {
               //crashAndDump(str, "uphill");
             }
             else if (feedbackRing[0] - feedbackRing[19] >= 5){
-              elevation = -1;
-            }
+              elevation = -1;}
             else
               PW=PWinit;
           }
