@@ -385,7 +385,10 @@ int main (void) {
               if(ping2[count]<min2){min2=ping2[count];}
               count++;}
             count=0;
-            voltThreshold1 = (max1+min1)/2; //Calculate voltage threshold using max/min
+            /*----------------------------------------------------------------------------
+            Voltage Scheme (PingPong)
+            *----------------------------------------------------------------------------*/
+            voltThreshold1 = (max1 + min1) / 2; //Calculate voltage threshold using max/min
             voltThreshold2 = (max2+min2)/2;
             while(count<128){ //Compare entire buffer with threshold
               if(count>14 & count<113){ //Ignores buffer values <14 and >113 because they are inaccurate
@@ -402,7 +405,6 @@ int main (void) {
                   zeroOne2[count] = '0';
                   voltMid2 += count;
                   voltCounter2++;}
-                //End voltage scheme
               }
               else
                 {zeroOne1[count]='1';
@@ -435,7 +437,6 @@ int main (void) {
                   zeroOne2[count] = '0';
                   voltMid2 += count;
                   voltCounter2++;}
-                //End voltage scheme
               }
               else
                 {zeroOne1[count]='1';
@@ -443,11 +444,10 @@ int main (void) {
               count++;}
             __disable_irq();
             put("\r\nPong: \r\n");}
-				
           voltMid1 = voltMid1/voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
           voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
           /*----------------------------------------------------------------------------
-          Turn
+          Gradual Turn
           *----------------------------------------------------------------------------*/
           if (voltMid1 > 0 && voltMid2 == -1){
             put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
