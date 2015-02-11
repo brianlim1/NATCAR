@@ -31,7 +31,8 @@ int voltMid1=0; int voltMid2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=160; int PW1init=4600;
+int PWinit=160;
+int PW1init=4600;
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -328,12 +329,22 @@ void crashAndDump(char str[80], char err[80]){
     Start_PIT();
     count = 0; Done = 0;
     //PW = (600 * dutyA) / 255;  //Multiply max pulse width by percentage according to POT1
-    PW = PWinit;
+    PW = getPot1PW();
     TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
     return;
   }
 }//void crashAndDump()
+
+int getPot1PW()
+{
+  int pot1, dutyA;
+  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
+  while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
+  dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
+  pot1 = (600 * dutyA) / 255;
+  return pot1;
+}//int getPot1PW()
 
 /*----------------------------------------------------------------------------
   MAIN function
@@ -363,6 +374,7 @@ int main (void) {
 
   //Wait for potentiometers loop
   put("\r\nTurn on power supply, then press SW2 (B)\r\n");
+  PWinit = getPot1PW();
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
   TPM0->CONTROLS[0].CnV = 0; //Set pulse width of H_Bridge A to OFF
@@ -557,7 +569,7 @@ int main (void) {
               Start_PIT();
               count=0; Done=0;
               //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
-              PW = PWinit;
+              PW = getPot1PW();
               TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
               TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
               break;
