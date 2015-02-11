@@ -301,6 +301,16 @@ void enable_HBridge(void){
 /*----------------------------------------------------------------------------
 Utility functions
 *----------------------------------------------------------------------------*/
+int getPot1PW()
+{
+  int pot1, dutyA;
+  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
+  while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
+  dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
+  pot1 = (600 * dutyA) / 255;
+  return pot1;
+}//int getPot1PW()
+
 void crashAndDump(char str[80], char err[80]){
   //Crash
   PW=0;
@@ -328,23 +338,12 @@ void crashAndDump(char str[80], char err[80]){
     __enable_irq();
     Start_PIT();
     count = 0; Done = 0;
-    //PW = (600 * dutyA) / 255;  //Multiply max pulse width by percentage according to POT1
     PW = getPot1PW();
     TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
     return;
   }
 }//void crashAndDump()
-
-int getPot1PW()
-{
-  int pot1, dutyA;
-  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
-  while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
-  dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
-  pot1 = (600 * dutyA) / 255;
-  return pot1;
-}//int getPot1PW()
 
 /*----------------------------------------------------------------------------
   MAIN function
@@ -494,13 +493,14 @@ int main (void) {
             }
             else if (feedbackRing[0] - feedbackRing[19] >= 5){
               elevation = -1;
+            }
             else
               PW=PWinit;
           }
           else if(elevation == 1){ //if previous elevation was going uphill
             //Check if car is at top of hill
             if(feedbackRing[0] - feedbackRing[19] >=5){
-              elevation = -1;
+              elevation = 0;
               //crashAndDump(str, "top of hill");
             }
             else
@@ -568,7 +568,6 @@ int main (void) {
               __enable_irq();
               Start_PIT();
               count=0; Done=0;
-              //PW = (600 * dutyA) / 255; //Multiply max pulse width by percentage according to POT1
               PW = getPot1PW();
               TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
               TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
