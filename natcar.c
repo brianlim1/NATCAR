@@ -488,7 +488,7 @@ int main (void) {
           Elevation Check
           *----------------------------------------------------------------------------*/
           if(elevation == 0){ //if elevation is flat ground
-            if((feedbackRing[19] - feedbackRing[0] >= 4) & (feedbackRing[0] >= 10)){
+            if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[19] >= 8)){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               //crashAndDump(str, "uphill");
             }
