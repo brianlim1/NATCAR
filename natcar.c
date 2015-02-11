@@ -478,6 +478,8 @@ int main (void) {
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               //crashAndDump(str, "uphill");
             }
+            else if (feedbackRing[0] - feedbackRing[19] >= 5){
+              elevation = -1;
             else
               PW=PWinit;
           }
