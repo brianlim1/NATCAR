@@ -11,7 +11,7 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3000-6000.
+volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3900-5850.
 volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
@@ -32,7 +32,7 @@ int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
 int PWinit=160;
-int PW1init=4600;
+int PW1init=4700; //Center of servo motor
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -203,7 +203,7 @@ void Init_PWM(void) {
   // Set period and pulse widths
   TPM1->MOD = 60000-1; //Freq. = (48 MHz / 16) / 60000 = 50 Hz (Servo update rate should be at 50Hz)
   TPM0->MOD = 600-1; //Freq. = (48 MHz / 16) / 600 = 5 kHz (Motor PWM frequency range is from 1-5kHz rate)
-  TPM1->CONTROLS[0].CnV = PW1;
+  TPM1->CONTROLS[0].CnV = PW1init;
   TPM0->CONTROLS[0].CnV = PW;
   TPM0->CONTROLS[2].CnV = PW;
 	
@@ -236,6 +236,8 @@ void TPM1_IRQHandler(void) {
   //clear the overflow mask by writing 1 to CHF
   if(TPM1->CONTROLS[0].CnSC & TPM_CnSC_CHF_MASK){
     TPM1->CONTROLS[0].CnSC |= TPM_CnSC_CHF_MASK;}
+  if (PW1 > 5850){ PW1 = 5850; }
+  if (PW1 < 3900){ PW1 = 3900; }
   TPM1->CONTROLS[0].CnV = PW1;
 
   counter++;
@@ -384,7 +386,10 @@ int main (void) {
   enable_HBridge();
   Start_PIT();
   PW = PWinit;
-  fbTarget = 100 * getPot1() / 255;
+  //fbTarget = 100 * getPot1() / 255;
+  fbTarget = 0.549 * (double)getPot1() - 26.9;
+		if (fbTarget < 10)
+			fbTarget = 10;
   TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
   TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
@@ -485,8 +490,8 @@ int main (void) {
             else {PW1=PW1init;}
           }
         }
-        if (PW1 > 5700){ PW1 = 5700; }
-        if (PW1 < 3600){ PW1 = 3600; }
+        if (PW1 > 5850){ PW1 = 5850; }
+        if (PW1 < 3900){ PW1 = 3900; }
         TPM1->CONTROLS[0].CnV = PW1;
         /*----------------------------------------------------------------------------
         Elevation Check
@@ -526,11 +531,12 @@ int main (void) {
           PW = 20; //don't go below min speed
         TPM0->CONTROLS[0].CnV = PW;
         TPM0->CONTROLS[2].CnV = PW;
+        //POT ranges from 0-255, PW1 ranges from 0-600
         //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
         //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
         //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
         //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
-        //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
+        //POT=130; PW1=306 L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
