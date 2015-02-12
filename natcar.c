@@ -11,8 +11,8 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4600;	//initialize as 1.5ms
-volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor.
+volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3000-6000.
+volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
 volatile char LEDflag = 0;
@@ -41,6 +41,7 @@ char ascii[2];
 char key;
 short hill = 30; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
 short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
+short fbTarget = 10;
 
 #define LED_RED    0
 #define LED_GREEN  1
@@ -301,14 +302,19 @@ void enable_HBridge(void){
 /*----------------------------------------------------------------------------
 Utility functions
 *----------------------------------------------------------------------------*/
-int getPot1PW()
+int getPot1()
 {
-  int pot1, dutyA;
+  int dutyA;
   ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
   while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
   dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
-  pot1 = (600 * dutyA) / 255;
-  return pot1;
+  return dutyA;
+}//int getPot1()
+
+int getPot1PW()
+{
+  int pot1PW = (600 * getPot1()) / 255;
+  return pot1PW;
 }//int getPot1PW()
 
 void crashAndDump(char str[80], char err[80]){
@@ -376,205 +382,208 @@ int main (void) {
 //  PWinit = getPot1PW();
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
-  TPM0->CONTROLS[0].CnV = 0; //Set pulse width of H_Bridge A to OFF
-  TPM0->CONTROLS[2].CnV = 0; //Set pulse width of H_Bridge B to OFF
+  Start_PIT();
+  PW = PWinit;
+  fbTarget = 100 * getPot1() / 255;
+  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
+  TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
-  while (1) {								
-    Start_PIT();
-    PW = PWinit;
-    TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
-    TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
-    while (1){
-      if (Done){
-        if(!uart0_getchar_present()){
+  while (1){
+    if (Done){
+      if(!uart0_getchar_present()){
+        count=0;
+        if(buffSwitch == 1){ //Check if buffer 1 is done or buffer 2
+          while (count<128){
+            if(ping1[count]>max1){max1=ping1[count];}
+            if(ping1[count]<min1){min1=ping1[count];}
+            if(ping2[count]>max2){max2=ping2[count];}
+            if(ping2[count]<min2){min2=ping2[count];}
+            count++;}
           count=0;
-          if(buffSwitch == 1){ //Check if buffer 1 is done or buffer 2
-            while (count<128){
-              if(ping1[count]>max1){max1=ping1[count];}
-              if(ping1[count]<min1){min1=ping1[count];}
-              if(ping2[count]>max2){max2=ping2[count];}
-              if(ping2[count]<min2){min2=ping2[count];}
-              count++;}
-            count=0;
-            /*----------------------------------------------------------------------------
-            Voltage Scheme (PingPong)
-            *----------------------------------------------------------------------------*/
-            voltThreshold1 = (max1 + min1) / 2; //Calculate voltage threshold using max/min
-            voltThreshold2 = (max2+min2)/2;
-            while(count<128){ //Compare entire buffer with threshold
-              if(count>14 & count<113){ //Ignores buffer values <14 and >113 because they are inaccurate
-                // Begin voltage scheme
-                if(ping1[count] >= voltThreshold1)
-                  {zeroOne1[count] = '1';} //If greater than threshold, black/white array gets 1
-                  else if(ping1[count] < voltThreshold1){	//If less than threshold, black/white array gets 0
-                  zeroOne1[count] = '0';																		
-                  voltMid1 += count; //Add middle-of-black-line index
-                  voltCounter1++;} //Increment middle-of-black-line counter
-                if(ping2[count] >= voltThreshold2)
-                  {zeroOne2[count] = '1';}
-                else if(ping2[count] < voltThreshold2){
-                  zeroOne2[count] = '0';
-                  voltMid2 += count;
-                  voltCounter2++;}
-              }
-              else
-                {zeroOne1[count]='1';
-                zeroOne2[count]='1';} //Buffer values <14 and >113 automatically get 1
-              count++;}
-            __disable_irq();
-            put("\r\nPing: \r\n");}
-          else if (buffSwitch == 2){
-            while (count<128){
-              if(pong1[count]>max1){max1=pong1[count];}
-              if(pong1[count]<min1){min1=pong1[count];}
-              if(pong2[count]>max2){max2=pong2[count];}
-              if(pong2[count]<min2){min2=pong2[count];}
-              count++;}
-            count=0;
-            voltThreshold1 = (max1+min1)/2;
-            voltThreshold2 = (max2+min2)/2;
-            while(count<128){
-              if(count>14 & count< 113){
-                //Begin voltage scheme
-                if(pong1[count] >= voltThreshold1)
-                  {zeroOne1[count] = '1';}
-                else if(pong1[count] < voltThreshold1){
-                  zeroOne1[count] = '0';
-                  voltMid1 += count;
-                  voltCounter1++;}
-                if(pong2[count] >= voltThreshold2)
-                  {zeroOne2[count] = '1';}
-                else if(pong2[count] < voltThreshold2){
-                  zeroOne2[count] = '0';
-                  voltMid2 += count;
-                  voltCounter2++;}
-              }
-              else
-                {zeroOne1[count]='1';
-                zeroOne2[count]='1';}
-              count++;}
-            __disable_irq();
-            put("\r\nPong: \r\n");}
-          voltMid1 = voltMid1/voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
-          voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
           /*----------------------------------------------------------------------------
-          Gradual Turn
+          Voltage Scheme (PingPong)
           *----------------------------------------------------------------------------*/
-          if (voltMid1 > 0 && voltMid2 == -1){
-            put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
-            PW1 = 4500 + 40*voltMid1;
-          }
-          else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
-            put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = 4500 - 40*(115-voltMid2);
-          }
-          else{
-            if (PW1 > PW1init){
-              if (PW1-PW1init >= 400){
-                PW1-=400;
-              }
-              else {PW1=PW1init;}
-            }
-            if (PW1 < PW1init){
-              if (PW1init-PW1 >=400){
-                PW1+=400;}
-              else {PW1=PW1init;}
-            }
-          }
-          if (PW1 > 5700){ PW1 = 5700; }
-          if (PW1 < 3600){ PW1 = 3600; }
-          /*----------------------------------------------------------------------------
-          Elevation Check
-          *----------------------------------------------------------------------------*/
-          if(elevation == 0){ //if elevation is flat ground
-            if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10)){
-              elevation = 1; //detect uphill via rapid increase in DC motor feedback
-              //crashAndDump(str, "uphill");
+          voltThreshold1 = (max1 + min1) / 2; //Calculate voltage threshold using max/min
+          voltThreshold2 = (max2+min2)/2;
+          while(count<128){ //Compare entire buffer with threshold
+            if(count>14 & count<113){ //Ignores buffer values <14 and >113 because they are inaccurate
+              // Begin voltage scheme
+              if(ping1[count] >= voltThreshold1)
+                {zeroOne1[count] = '1';} //If greater than threshold, black/white array gets 1
+                else if(ping1[count] < voltThreshold1){	//If less than threshold, black/white array gets 0
+                zeroOne1[count] = '0';																		
+                voltMid1 += count; //Add middle-of-black-line index
+                voltCounter1++;} //Increment middle-of-black-line counter
+              if(ping2[count] >= voltThreshold2)
+                {zeroOne2[count] = '1';}
+              else if(ping2[count] < voltThreshold2){
+                zeroOne2[count] = '0';
+                voltMid2 += count;
+                voltCounter2++;}
             }
             else
-              PW=PWinit;
-          }
-          else if(elevation == 1){ //if previous elevation was going uphill
-            //Check if car is at top of hill
-            if(feedbackRing[0] - feedbackRing[19] >=5){
-              elevation = 0;
-              //crashAndDump(str, "top of hill");
+              {zeroOne1[count]='1';
+              zeroOne2[count]='1';} //Buffer values <14 and >113 automatically get 1
+            count++;}
+          __disable_irq();
+          put("\r\nPing: \r\n");}
+        else if (buffSwitch == 2){
+          while (count<128){
+            if(pong1[count]>max1){max1=pong1[count];}
+            if(pong1[count]<min1){min1=pong1[count];}
+            if(pong2[count]>max2){max2=pong2[count];}
+            if(pong2[count]<min2){min2=pong2[count];}
+            count++;}
+          count=0;
+          voltThreshold1 = (max1+min1)/2;
+          voltThreshold2 = (max2+min2)/2;
+          while(count<128){
+            if(count>14 & count< 113){
+              //Begin voltage scheme
+              if(pong1[count] >= voltThreshold1)
+                {zeroOne1[count] = '1';}
+              else if(pong1[count] < voltThreshold1){
+                zeroOne1[count] = '0';
+                voltMid1 += count;
+                voltCounter1++;}
+              if(pong2[count] >= voltThreshold2)
+                {zeroOne2[count] = '1';}
+              else if(pong2[count] < voltThreshold2){
+                zeroOne2[count] = '0';
+                voltMid2 += count;
+                voltCounter2++;}
             }
             else
-              //Increase motor speed to get over hill
-              PW=360;
-          }
-          else if(elevation == -1){ //if elevation is downhill
-            //Check if car is at bottom of hill
-            if(feedbackRing[10] - feedbackRing[19] >=5){
-              elevation = 0;
-              //crashAndDump(str, "downhill");
-            }
-            else
-              PW=15;
-          }
-          TPM0->CONTROLS[0].CnV = PW;
-          TPM0->CONTROLS[2].CnV = PW;
-          //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
-          //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
-          //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
-          //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
-          //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
-          TPM1->CONTROLS[0].CnV = PW1;
-          /*----------------------------------------------------------------------------
-          Print data
-          *----------------------------------------------------------------------------*/
-          put("Left Cam:  "); put(zeroOne1); //put("\r\n");
-          sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
-          sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
-          put("Right Cam: ");put(zeroOne2); //put("\r\n");
-          sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
-          sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
-          sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-          sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
-          put("Feedback history = ");
-          for(j=0;j<20;j++){
-            sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
-          put("\r\n");
-					
-          __enable_irq();
-          Done=0;count=0;
-          sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
-          sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
+              {zeroOne1[count]='1';
+              zeroOne2[count]='1';}
+            count++;}
+          __disable_irq();
+          put("\r\nPong: \r\n");}
+        voltMid1 = voltMid1/voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
+        voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
+        /*----------------------------------------------------------------------------
+        Gradual Turn
+        *----------------------------------------------------------------------------*/
+        if (voltMid1 > 0 && voltMid2 == -1){
+          put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
+          PW1 = 4500 + 40*voltMid1;
         }
-        else if(uart0_getchar() == 'p'){
-          PW=0;
-          TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
-          TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
-          put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
-          while(1){
-            key = uart0_getchar();
-            if(key == 'q'){
-              put("\r\nQuitting Program\r\n");
-              disable_HBridge();
-              return 0;}
-            if (key == 'r'){
-              put("\r\nResampling POT1...\r\n");
-              ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
-              while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } // wait for conversion to complete (polling)
-              dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
-              put("New measurement from POT1: ");
-              sprintf(str, "%d", dutyA); put(str); put("\r\n");
+        else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
+          put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
+          PW1 = 4500 - 40*(115-voltMid2);
+        }
+        else{
+          if (PW1 > PW1init){
+            if (PW1-PW1init >= 400){
+              PW1-=400;
             }
-            if (key == 'c'){
-              __enable_irq();
-              Start_PIT();
-              count=0; Done=0;
-              PW = getPot1PW();
-              TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
-              TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
-              break;
-            }
+            else {PW1=PW1init;}
+          }
+          if (PW1 < PW1init){
+            if (PW1init-PW1 >=400){
+              PW1+=400;}
+            else {PW1=PW1init;}
+          }
+        }
+        if (PW1 > 5700){ PW1 = 5700; }
+        if (PW1 < 3600){ PW1 = 3600; }
+        TPM1->CONTROLS[0].CnV = PW1;
+        /*----------------------------------------------------------------------------
+        Elevation Check
+        *----------------------------------------------------------------------------*/
+        if(elevation == 0){ //if elevation is flat ground
+          if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10)){
+            elevation = 1; //detect uphill via rapid increase in DC motor feedback
+            //crashAndDump(str, "uphill");
+          }
+        }
+        else if(elevation == 1){ //if previous elevation was going uphill
+          //Check if car is at top of hill
+          if(feedbackRing[0] - feedbackRing[19] >=5){
+            elevation = -1;
+            //crashAndDump(str, "top of hill");
+          }
+        }
+        else if(elevation == -1){ //if elevation is downhill
+          //Check if car is at bottom of hill
+          if(feedbackRing[10] - feedbackRing[19] >=5){
+            elevation = 0;
+            //crashAndDump(str, "downhill");
+          }
+        }
+        /*----------------------------------------------------------------------------
+        Cruise Control
+        *----------------------------------------------------------------------------*/
+        if ((feedbackRing[19] + hill * elevation - fbTarget) > 3){
+          PW -= 10;
+        }//if current feedback is more than target feedback, decrease PW (too fast)
+        else if ((feedbackRing[19] + hill * elevation - fbTarget) < -3){
+          PW += 10;
+        }//if current feedback is less than target feedback, increase PW (too slow)
+        if (PW > 580)
+          PW = 580; //don't exceed max speed
+        if (PW < 20)
+          PW = 20; //don't go below min speed
+        TPM0->CONTROLS[0].CnV = PW;
+        TPM0->CONTROLS[2].CnV = PW;
+        //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
+        //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
+        //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
+        //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
+        //POT=130; PW1=L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
+        /*----------------------------------------------------------------------------
+        Print data
+        *----------------------------------------------------------------------------*/
+        put("Left Cam:  "); put(zeroOne1); //put("\r\n");
+        sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
+        sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
+        put("Right Cam: ");put(zeroOne2); //put("\r\n");
+        sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
+        sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
+        sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+        sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
+        put("Feedback history = ");
+        for(j=0;j<20;j++){
+          sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
+        put("\r\n");
+
+        __enable_irq();
+        Done=0;count=0;
+        sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
+        sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
+      }
+      else if(uart0_getchar() == 'p'){
+        PW=0;
+        TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+        TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+        put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
+        while(1){
+          key = uart0_getchar();
+          if(key == 'q'){
+            put("\r\nQuitting Program\r\n");
+            disable_HBridge();
+            return 0;}
+          if (key == 'r'){
+            put("\r\nResampling POT1...\r\n");
+            ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
+            while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } // wait for conversion to complete (polling)
+            dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
+            put("New measurement from POT1: ");
+            sprintf(str, "%d", dutyA); put(str); put("\r\n");
+          }
+          if (key == 'c'){
+            __enable_irq();
+            Start_PIT();
+            count=0; Done=0;
+            PW = getPot1PW();
+            TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
+            TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
+            break;
           }
         }
       }
-      else if(!Done){continue;}
-    }//Loop through the main sequence forever
-  }//main loop
+    }
+    else if(!Done){continue;}
+  }//main loop //Loop through the main sequence forever
 }
 
