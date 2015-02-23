@@ -31,7 +31,7 @@ int voltMid1=0; int voltMid2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=160;
+int PWinit=200;
 int PW1init=4700; //Center of servo motor
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
@@ -204,7 +204,7 @@ void Init_PWM(void) {
   TPM1->MOD = 60000-1; //Freq. = (48 MHz / 16) / 60000 = 50 Hz (Servo update rate should be at 50Hz)
   TPM0->MOD = 600-1; //Freq. = (48 MHz / 16) / 600 = 5 kHz (Motor PWM frequency range is from 1-5kHz rate)
   TPM1->CONTROLS[0].CnV = PW1init;
-  TPM0->CONTROLS[0].CnV = PW;
+  TPM0->CONTROLS[0].CnV = PW; //(RIGHT MOTOR)
   TPM0->CONTROLS[2].CnV = PW;
 	
   //set TPM0/1 to up-counter, divide by 16 prescaler and clock mode
@@ -236,8 +236,8 @@ void TPM1_IRQHandler(void) {
   //clear the overflow mask by writing 1 to CHF
   if(TPM1->CONTROLS[0].CnSC & TPM_CnSC_CHF_MASK){
     TPM1->CONTROLS[0].CnSC |= TPM_CnSC_CHF_MASK;}
-  if (PW1 > 5850){ PW1 = 5850; }
-  if (PW1 < 3900){ PW1 = 3900; }
+  if (PW1 > 5800){ PW1 = 5800; }
+  if (PW1 < 3950){ PW1 = 3950; }
   TPM1->CONTROLS[0].CnV = PW1;
 
   counter++;
@@ -322,7 +322,7 @@ int getPot1PW()
 void crashAndDump(char str[80], char err[80]){
   //Crash
   PW=0;
-  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
   TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
   put("\r\n");
   put(err);
@@ -347,7 +347,7 @@ void crashAndDump(char str[80], char err[80]){
     Start_PIT();
     count = 0; Done = 0;
     PW = getPot1PW();
-    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
     return;
   }
@@ -390,7 +390,7 @@ int main (void) {
   fbTarget = 0.549 * (double)getPot1() - 26.9;
 		if (fbTarget < 10)
 			fbTarget = 10;
-  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
+  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
   TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
   while (1){
@@ -471,31 +471,38 @@ int main (void) {
         *----------------------------------------------------------------------------*/
         if (voltMid1 > 0 && voltMid2 == -1){
           put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
-          PW1 = 4500 + 40*voltMid1;
+          PW1 = 4500 + 27*voltMid1;
+          //TPM0->CONTROLS[2].CnV = PW + 35;
+          //TPM0->CONTROLS[0].CnV = PW - 35;
         }
         else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
           put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-          PW1 = 4500 - 40*(115-voltMid2);
+          PW1 = 4500 - 27*(115-voltMid2);
+          //TPM0->CONTROLS[2].CnV = PW - 35;
+          //TPM0->CONTROLS[0].CnV = PW + 35;
         }
         else{
-          if (PW1 > PW1init){
+          //TPM0->CONTROLS[0].CnV = PW;
+          //TPM0->CONTROLS[2].CnV = PW;
+          if (PW1 > PW1init){ //If car in right turn
             if (PW1-PW1init >= 400){
               PW1-=400;
             }
             else {PW1=PW1init;}
           }
-          if (PW1 < PW1init){
+          if (PW1 < PW1init){ //If car in left turn
             if (PW1init-PW1 >=400){
               PW1+=400;}
             else {PW1=PW1init;}
           }
         }
-        if (PW1 > 5850){ PW1 = 5850; }
-        if (PW1 < 3900){ PW1 = 3900; }
+        if (PW1 > 5800){ PW1 = 5800; } //Max right turn
+        if (PW1 < 3950){ PW1 = 3950; } //Max left turn
         TPM1->CONTROLS[0].CnV = PW1;
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
+        /*
         if(elevation == 0){ //if elevation is flat ground
           if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10)){
             elevation = 1; //detect uphill via rapid increase in DC motor feedback
@@ -516,9 +523,11 @@ int main (void) {
             //crashAndDump(str, "downhill");
           }
         }
+        */
         /*----------------------------------------------------------------------------
         Cruise Control
         *----------------------------------------------------------------------------*/
+				/*
         if ((feedbackRing[19] + hill * elevation - fbTarget) > 3){
           PW -= 10;
         }//if current feedback is more than target feedback, decrease PW (too fast)
@@ -529,8 +538,10 @@ int main (void) {
           PW = 580; //don't exceed max speed
         if (PW < 20)
           PW = 20; //don't go below min speed
-        TPM0->CONTROLS[0].CnV = PW;
+				
+        TPM0->CONTROLS[0].CnV = PW; //(RIGHT MOTOR)
         TPM0->CONTROLS[2].CnV = PW;
+        */
         //POT ranges from 0-255, PW1 ranges from 0-600
         //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
         //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
@@ -560,7 +571,7 @@ int main (void) {
       }
       else if(uart0_getchar() == 'p'){
         PW=0;
-        TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1
+        TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
         TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
         put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
         while(1){
@@ -582,7 +593,7 @@ int main (void) {
             Start_PIT();
             count=0; Done=0;
             PW = getPot1PW();
-            TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1
+            TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
             TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
             break;
           }
