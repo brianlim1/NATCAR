@@ -8,11 +8,12 @@
 #include "main.h"
 #include "adc16.h"
 #include "stdio.h"
+#define max(a,b) (a>b?a:b)
 
 void init_ADC0(void);
 
 volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3900-5850.
-volatile short PW = 300;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
+volatile short PW = 0;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
 volatile char LEDflag = 0;
@@ -28,10 +29,12 @@ int count=0;
 int sum1=0; int avg1=0; int max1=0; int min1=400; 
 int sum2=0; int avg2=0; int max2=0; int min2=400;
 int voltMid1=0; int voltMid2=0;
+int prevErr1=0; int prevErr2=0;
+int currErr1=0; int currErr2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=200;
+int PWinit=260;
 int PW1init=4700; //Center of servo motor
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
@@ -236,7 +239,7 @@ void TPM1_IRQHandler(void) {
   //clear the overflow mask by writing 1 to CHF
   if(TPM1->CONTROLS[0].CnSC & TPM_CnSC_CHF_MASK){
     TPM1->CONTROLS[0].CnSC |= TPM_CnSC_CHF_MASK;}
-  if (PW1 > 5800){ PW1 = 5800; }
+  if (PW1 > 6400){ PW1 = 6400; }
   if (PW1 < 3950){ PW1 = 3950; }
   TPM1->CONTROLS[0].CnV = PW1;
 
@@ -322,7 +325,7 @@ int getPot1PW()
 void crashAndDump(char str[80], char err[80]){
   //Crash
   PW=0;
-  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
+  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
   TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
   put("\r\n");
   put(err);
@@ -347,7 +350,7 @@ void crashAndDump(char str[80], char err[80]){
     Start_PIT();
     count = 0; Done = 0;
     PW = getPot1PW();
-    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
+    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
     TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
     return;
   }
@@ -360,6 +363,7 @@ int main (void) {
   //variables
   char str[80];
   int uart0_clk_khz;
+	int SW1_Not_Pressed = 1;
   //initialization code
   SIM->SCGC5 |= (SIM_SCGC5_PORTA_MASK
   | SIM_SCGC5_PORTB_MASK
@@ -381,16 +385,25 @@ int main (void) {
 
   //Wait for potentiometers loop
   put("\r\nTurn on power supply, then press SW2 (B)\r\n");
-//  PWinit = getPot1PW();
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
-  Start_PIT();
-  PW = PWinit;
-  //fbTarget = 100 * getPot1() / 255;
+  /*
   fbTarget = 0.549 * (double)getPot1() - 26.9;
 		if (fbTarget < 10)
 			fbTarget = 10;
-  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
+  */
+  while(SW1_Not_Pressed){
+  /*
+	  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);
+    while(!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;}
+    dutyA = ADC0->R[0];
+    PWinit = (600*dutyA) / 255;
+  */
+    if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}
+  }
+  Start_PIT();
+  PW = PWinit;
+  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
   TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
   while (1){
@@ -420,9 +433,9 @@ int main (void) {
                 voltMid1 += count; //Add middle-of-black-line index
                 voltCounter1++;} //Increment middle-of-black-line counter
               if(ping2[count] >= voltThreshold2)
-                {zeroOne2[count] = '1';}
+                {zeroOne2[count] = '1';} //1 for white
               else if(ping2[count] < voltThreshold2){
-                zeroOne2[count] = '0';
+                zeroOne2[count] = '0'; // 0 for black
                 voltMid2 += count;
                 voltCounter2++;}
             }
@@ -468,37 +481,52 @@ int main (void) {
         voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
         /*----------------------------------------------------------------------------
         Gradual Turn
-        *----------------------------------------------------------------------------*/
+        *----------------------------------------------------------------------------*/        
+        //voltMid1 is left cam, voltMid2 is right cam
+
+        //RIGHT TURN
         if (voltMid1 > 0 && voltMid2 == -1){
-          put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n"); 	
-          PW1 = 4500 + 27*voltMid1;
-          //TPM0->CONTROLS[2].CnV = PW + 35;
-          //TPM0->CONTROLS[0].CnV = PW - 35;
+          //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
+          if(PW1 > 5200){
+            TPM0->CONTROLS[2].CnV = PW - 35;
+            TPM0->CONTROLS[0].CnV = PW + 35;
+          }
+          if(voltMid1 >= prevErr1){
+            PW1 = PW1init + 23*voltMid1 + 25*(voltMid1-prevErr1);}
+          else if(voltMid1 < prevErr1){
+            PW1 = PW1init + 23*voltMid1 - 25*(prevErr1-voltMid1);}
         }
-        else if ((voltMid2 > 50 && voltMid2 <115) && voltMid1 == -1){
-          put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-          PW1 = 4500 - 27*(115-voltMid2);
-          //TPM0->CONTROLS[2].CnV = PW - 35;
-          //TPM0->CONTROLS[0].CnV = PW + 35;
+        //LEFT TURN
+        else if (voltMid2 >0 && voltMid1 == -1){
+          //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
+          if(PW1 < 4500){
+            TPM0->CONTROLS[2].CnV = PW + 35;
+            TPM0->CONTROLS[0].CnV = PW - 35;
+          }
+          if(voltMid2 >= prevErr2){
+            PW1 = PW1init - 20*voltMid2 - 25*(voltMid2-prevErr2);}
+          else if(voltMid2 < prevErr2){
+            PW1 = PW1init - 20*voltMid2 + 25*(prevErr2-voltMid2);}
         }
         else{
-          //TPM0->CONTROLS[0].CnV = PW;
-          //TPM0->CONTROLS[2].CnV = PW;
+          TPM0->CONTROLS[0].CnV = PW;
+          TPM0->CONTROLS[2].CnV = PW;
           if (PW1 > PW1init){ //If car in right turn
-            if (PW1-PW1init >= 400){
-              PW1-=400;
-            }
+            if (PW1-PW1init >= PWinit*2){
+              PW1-=PWinit*2;}
             else {PW1=PW1init;}
           }
           if (PW1 < PW1init){ //If car in left turn
-            if (PW1init-PW1 >=400){
-              PW1+=400;}
+            if (PW1init-PW1 >=PWinit*2){
+              PW1+=PWinit*2;}
             else {PW1=PW1init;}
           }
         }
-        if (PW1 > 5800){ PW1 = 5800; } //Max right turn
+        if (PW1 > 6400){ PW1 = 6400; } //Max right turn
         if (PW1 < 3950){ PW1 = 3950; } //Max left turn
         TPM1->CONTROLS[0].CnV = PW1;
+        prevErr1 = voltMid1; prevErr2 = voltMid2;
+				
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
@@ -571,7 +599,7 @@ int main (void) {
       }
       else if(uart0_getchar() == 'p'){
         PW=0;
-        TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
+        TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
         TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
         put("\r\nPress 'c' to continue scanning cameras, 'r' to choose a new DC Motor speed, or 'q' to quit\r\n");
         while(1){
@@ -593,7 +621,7 @@ int main (void) {
             Start_PIT();
             count=0; Done=0;
             PW = getPot1PW();
-            TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (RIGHT MOTOR)
+            TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
             TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
             break;
           }
