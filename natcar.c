@@ -13,6 +13,8 @@ void init_ADC0(void);
 
 volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3900-5850.
 volatile short PW = 0;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
+short PWL = 0; //Pulse Width for left DC Motor
+short PWR = 0; //Pulse Width for right DC Motor
 volatile char TPMflag = 0;
 volatile unsigned short counter = 0;
 volatile char LEDflag = 0;
@@ -480,12 +482,13 @@ int main (void) {
         //voltMid1 is left cam, voltMid2 is right cam
         if (PW1 > 5200 || PW1 < 4500) { PW = PWinit - 50; } //SLOW FOR THE CONE ZONE (slow down car when doing severe turns)
         else { PW = PWinit; } //else go full speed
+        PWL = PWR = PW; //initialize left and right DC motors for this iteration through the main loop
         //RIGHT TURN
         if (voltMid1 > 0 && voltMid2 == -1){
           //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
           if(PW1 > 5200){
-            TPM0->CONTROLS[2].CnV = PW - 35;
-            TPM0->CONTROLS[0].CnV = PW + 35;
+            PWL = PW - 35;
+            PWR = PW + 35;
           }
           PW1 = PW1init + 48*voltMid1 - 25*prevErr1;
         }
@@ -493,14 +496,12 @@ int main (void) {
         else if (voltMid2 >0 && voltMid1 == -1){
           //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
           if(PW1 < 4500){
-            TPM0->CONTROLS[2].CnV = PW + 35;
-            TPM0->CONTROLS[0].CnV = PW - 35;
+            PWL = PW + 35;
+            PWR = PW - 35;
           }
           PW1 = PW1init - 45*voltMid2 + 25*prevErr2;
         }
         else{
-          TPM0->CONTROLS[0].CnV = PW;
-          TPM0->CONTROLS[2].CnV = PW;
           if (PW1 > PW1init){ //If car in right turn
             if (PW1-PW1init >= PWinit*2){
               PW1-=PWinit*2;}
@@ -518,6 +519,8 @@ int main (void) {
           PW1 = PW1init;
         }//homeostatic region: don't turn turn at all unless you need to turn at least a certain amount.
         TPM1->CONTROLS[0].CnV = PW1;
+        TPM0->CONTROLS[2].CnV = PWL;
+        TPM0->CONTROLS[0].CnV = PWR;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
         /*----------------------------------------------------------------------------
         Print data
