@@ -478,7 +478,6 @@ int main (void) {
         Gradual Turn
         *----------------------------------------------------------------------------*/        
         //voltMid1 is left cam, voltMid2 is right cam
-
         //RIGHT TURN
         if (voltMid1 > 0 && voltMid2 == -1){
           //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
@@ -486,10 +485,7 @@ int main (void) {
             TPM0->CONTROLS[2].CnV = PW - 35;
             TPM0->CONTROLS[0].CnV = PW + 35;
           }
-          if(voltMid1 >= prevErr1){
-            PW1 = PW1init + 23*voltMid1 + 25*(voltMid1-prevErr1);}
-          else if(voltMid1 < prevErr1){
-            PW1 = PW1init + 23*voltMid1 - 25*(prevErr1-voltMid1);}
+          PW1 = PW1init + 23*voltMid1 + 25*(voltMid1-prevErr1);
         }
         //LEFT TURN
         else if (voltMid2 >0 && voltMid1 == -1){
@@ -498,10 +494,7 @@ int main (void) {
             TPM0->CONTROLS[2].CnV = PW + 35;
             TPM0->CONTROLS[0].CnV = PW - 35;
           }
-          if(voltMid2 >= prevErr2){
-            PW1 = PW1init - 20*voltMid2 - 25*(voltMid2-prevErr2);}
-          else if(voltMid2 < prevErr2){
-            PW1 = PW1init - 20*voltMid2 + 25*(prevErr2-voltMid2);}
+          PW1 = PW1init - 20*voltMid2 - 25*(voltMid2-prevErr2);
         }
         else{
           TPM0->CONTROLS[0].CnV = PW;
@@ -521,7 +514,6 @@ int main (void) {
         if (PW1 < 3950){ PW1 = 3950; } //Max left turn
         TPM1->CONTROLS[0].CnV = PW1;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
-				
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -543,7 +535,10 @@ int main (void) {
         sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
         sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
       }
-      else if(uart0_getchar() == 'p'){
+      /*----------------------------------------------------------------------------
+      Pause
+      *----------------------------------------------------------------------------*/
+      else if (uart0_getchar() == 'p'){
         PW=0;
         TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
         TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
