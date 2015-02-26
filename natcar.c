@@ -485,7 +485,7 @@ int main (void) {
             TPM0->CONTROLS[2].CnV = PW - 35;
             TPM0->CONTROLS[0].CnV = PW + 35;
           }
-          PW1 = PW1init + 23*voltMid1 + 25*(voltMid1-prevErr1);
+          PW1 = PW1init + 48*voltMid1 - 25*prevErr1;
         }
         //LEFT TURN
         else if (voltMid2 >0 && voltMid1 == -1){
@@ -494,7 +494,7 @@ int main (void) {
             TPM0->CONTROLS[2].CnV = PW + 35;
             TPM0->CONTROLS[0].CnV = PW - 35;
           }
-          PW1 = PW1init - 20*voltMid2 - 25*(voltMid2-prevErr2);
+          PW1 = PW1init - 45*voltMid2 + 25*prevErr2;
         }
         else{
           TPM0->CONTROLS[0].CnV = PW;
