@@ -512,6 +512,9 @@ int main (void) {
         }
         if (PW1 > 6400){ PW1 = 6400; } //Max right turn
         if (PW1 < 3950){ PW1 = 3950; } //Max left turn
+        if (PW1 > 4500 && PW1 < 5200) {
+          PW1 = PW1init;
+        }//homeostatic region: don't turn turn at all unless you need to turn at least a certain amount.
         TPM1->CONTROLS[0].CnV = PW1;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
         /*----------------------------------------------------------------------------
