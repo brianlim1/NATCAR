@@ -33,8 +33,8 @@ int currErr1=0; int currErr2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=260;
-int PW1init=4700; //Center of servo motor
+int PWinit=220;
+int PW1init=4800; //Center of servo motor
 int feedbackRing[20];
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -478,6 +478,8 @@ int main (void) {
         Gradual Turn
         *----------------------------------------------------------------------------*/        
         //voltMid1 is left cam, voltMid2 is right cam
+        if (PW1 > 5200 || PW1 < 4500) { PW = PWinit - 50; } //SLOW FOR THE CONE ZONE (slow down car when doing severe turns)
+        else { PW = PWinit; } //else go full speed
         //RIGHT TURN
         if (voltMid1 > 0 && voltMid2 == -1){
           //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
