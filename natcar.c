@@ -8,7 +8,6 @@
 #include "main.h"
 #include "adc16.h"
 #include "stdio.h"
-#define max(a,b) (a>b?a:b)
 
 void init_ADC0(void);
 
@@ -307,6 +306,13 @@ void enable_HBridge(void){
 /*----------------------------------------------------------------------------
 Utility functions
 *----------------------------------------------------------------------------*/
+int max(int a, int b)
+{
+  if (a > b)
+    return a;
+  return b;
+}
+
 int getPot1()
 {
   int dutyA;
