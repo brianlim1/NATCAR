@@ -393,18 +393,7 @@ int main (void) {
   put("\r\nTurn on power supply, then press SW2 (B)\r\n");
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
-  /*
-  fbTarget = 0.549 * (double)getPot1() - 26.9;
-		if (fbTarget < 10)
-			fbTarget = 10;
-  */
   while(SW1_Not_Pressed){
-  /*
-	  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);
-    while(!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;}
-    dutyA = ADC0->R[0];
-    PWinit = (600*dutyA) / 255;
-  */
     if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}
   }
   Start_PIT();
@@ -533,55 +522,6 @@ int main (void) {
         TPM1->CONTROLS[0].CnV = PW1;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
 				
-        /*----------------------------------------------------------------------------
-        Elevation Check
-        *----------------------------------------------------------------------------*/
-        /*
-        if(elevation == 0){ //if elevation is flat ground
-          if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10)){
-            elevation = 1; //detect uphill via rapid increase in DC motor feedback
-            //crashAndDump(str, "uphill");
-          }
-        }
-        else if(elevation == 1){ //if previous elevation was going uphill
-          //Check if car is at top of hill
-          if(feedbackRing[0] - feedbackRing[19] >=5){
-            elevation = -1;
-            //crashAndDump(str, "top of hill");
-          }
-        }
-        else if(elevation == -1){ //if elevation is downhill
-          //Check if car is at bottom of hill
-          if(feedbackRing[10] - feedbackRing[19] >=5){
-            elevation = 0;
-            //crashAndDump(str, "downhill");
-          }
-        }
-        */
-        /*----------------------------------------------------------------------------
-        Cruise Control
-        *----------------------------------------------------------------------------*/
-				/*
-        if ((feedbackRing[19] + hill * elevation - fbTarget) > 3){
-          PW -= 10;
-        }//if current feedback is more than target feedback, decrease PW (too fast)
-        else if ((feedbackRing[19] + hill * elevation - fbTarget) < -3){
-          PW += 10;
-        }//if current feedback is less than target feedback, increase PW (too slow)
-        if (PW > 580)
-          PW = 580; //don't exceed max speed
-        if (PW < 20)
-          PW = 20; //don't go below min speed
-				
-        TPM0->CONTROLS[0].CnV = PW; //(RIGHT MOTOR)
-        TPM0->CONTROLS[2].CnV = PW;
-        */
-        //POT ranges from 0-255, PW1 ranges from 0-600
-        //POT=60;  PW1=141 L_IFB = 6-10;  R_IFB = 6-10;  (10-12 when stuck on hill)
-        //POT=65;  PW1=152 L_IFB = 7-9;   R_IFB = 7-9;   (10-15 when stuck on hill)
-        //POT=75;  PW1=178 L_IFB = 11-15; R_IFB = 11-15; (19-22 when stuck on hill)
-        //POT=90;  PW1=209 L_IFB = 20-24; R_IFB = 20-24; (25-30 when stuck on hill)
-        //POT=130; PW1=306 L_IFB = 40-50; R_IFB = 40-50; (does not get stuck on hill)
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
