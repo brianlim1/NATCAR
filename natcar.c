@@ -11,7 +11,7 @@
 
 void init_ADC0(void);
 
-volatile unsigned short PW1 = 4600;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3900-5850.
+volatile unsigned short PW1 = 5100;	//initialize as 1.5ms. Pulse Width for Servo Motor. Range of 3900-5850.
 volatile short PW = 0;	//initialize as 0.1ms. Pulse Width for DC Motor. Range of 0-600.
 short PWL = 0; //Pulse Width for left DC Motor
 short PWR = 0; //Pulse Width for right DC Motor
@@ -35,9 +35,10 @@ int currErr1=0; int currErr2=0;
 int voltCounter1=0; int voltCounter2=0;
 int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
-int PWinit=220;
-int PW1init=4800; //Center of servo motor
+int PWinit=260;
+int PW1init=5100; //Center of servo motor
 int feedbackRing[20];
+int turn=0; //0 for neutral, 1 for right, 2 for left
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
 char zeroOne1[130]; char zeroOne2[130];
@@ -371,7 +372,7 @@ int main (void) {
   //variables
   char str[80];
   int uart0_clk_khz;
-	int SW1_Not_Pressed = 1;
+	int SWA_Not_Pressed = 1;
   //initialization code
   SIM->SCGC5 |= (SIM_SCGC5_PORTA_MASK
   | SIM_SCGC5_PORTB_MASK
@@ -395,13 +396,24 @@ int main (void) {
   put("\r\nTurn on power supply, then press SW2 (B)\r\n");
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
-  while(SW1_Not_Pressed){
-    if ((FPTC->PDIR & (1UL << 13))){SW1_Not_Pressed = 0;}
+  put("Adjust motor speed with pot1, then press SW1 (A)\r\n");
+  while(SWA_Not_Pressed){
+    ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);
+    while(!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;}
+    dutyA = ADC0->R[0];
+    PWinit = (600 * dutyA) / 255;
+    PW = PWinit;
+    TPM0->CONTROLS[0].CnV = PW;
+    TPM0->CONTROLS[2].CnV = PW;
+    if ((FPTC->PDIR & (1UL << 13))){SWA_Not_Pressed = 0;}
   }
+  fbTarget = 0.549 * (double)dutyA - 26.9;
+    if(fbTarget < 10){
+      fbTarget = 10;}
   Start_PIT();
-  PW = PWinit;
-  TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
-  TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
+  //PW = PWinit;
+  //TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
+  //TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
   while (1){
     if (Done){
@@ -480,48 +492,71 @@ int main (void) {
         Gradual Turn
         *----------------------------------------------------------------------------*/        
         //voltMid1 is left cam, voltMid2 is right cam
-        if (PW1 > 5200 || PW1 < 4500) { PW = PWinit - 50; } //SLOW FOR THE CONE ZONE (slow down car when doing severe turns)
-        else { PW = PWinit; } //else go full speed
-        PWL = PWR = PW; //initialize left and right DC motors for this iteration through the main loop
-        //RIGHT TURN
-        if (voltMid1 > 0 && voltMid2 == -1){
-          //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-          if(PW1 > 5200){
-            PWL = PW - 35;
-            PWR = PW + 35;
-          }
-          PW1 = PW1init + 48*voltMid1 - 25*prevErr1;
-        }
+        //if (PW1 > PW1init+170 || PW1 < PW1init-170) { PW = PWinit - 50; } //SLOW FOR THE CONE ZONE (slow down car when doing severe turns)
+        //else { PW = PWinit; } //else go full speed
+        PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
+
         //LEFT TURN
-        else if (voltMid2 >0 && voltMid1 == -1){
+        if ((voltMid2 > 0) && (turn != 1)){
           //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-          if(PW1 < 4500){
-            PWL = PW + 35;
-            PWR = PW - 35;
+          PW1 = PW1init - 35*(voltMid2-14);
+          if(PW1 < PW1init - 170){
+            turn = 2;
+            PWR = PWinit+130;
+            PWL = PWinit-70;
           }
-          PW1 = PW1init - 45*voltMid2 + 25*prevErr2;
         }
+        //RIGHT TURN
+        else if ((voltMid1 > 0) && (turn != 2)){
+          //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
+          PW1 = PW1init + 35*(voltMid1-14);
+          if(PW1 > PW1init + 170){
+            turn = 1;
+            PWR = PWinit-70;
+            PWL = PWinit+130;
+          }
+        }
+        //STRAIGHT
         else{
+          turn=0;
           if (PW1 > PW1init){ //If car in right turn
-            if (PW1-PW1init >= PWinit*2){
-              PW1-=PWinit*2;}
+            if (PW1-PW1init >= PWinit*(3/2)){
+              PW1-=PWinit*(3/2);}
             else {PW1=PW1init;}
           }
           if (PW1 < PW1init){ //If car in left turn
-            if (PW1init-PW1 >=PWinit*2){
-              PW1+=PWinit*2;}
+            if (PW1init-PW1 <= PWinit*(3/2)){
+              PW1+=PWinit*(3/2);}
             else {PW1=PW1init;}
           }
         }
+				
         if (PW1 > 6400){ PW1 = 6400; } //Max right turn
         if (PW1 < 3950){ PW1 = 3950; } //Max left turn
-        if (PW1 > (PW1init - 100) && PW1 < (PW1init + 100)) {
-          PW1 = PW1init;
-        }//homeostatic region: don't turn turn at all unless you need to turn at least a certain amount.
+        //if (PW1 > (PW1init - 100) && PW1 < (PW1init + 100)) {
+        //  PW1 = PW1init;
+        //}//homeostatic region: don't turn turn at all unless you need to turn at least a certain amount.
+        if (PWR < 0){PWR=0;}
+        else if (PWR > 600){PWR=600;}
+        if (PWL < 0){PWL=0;}
+        else if (PWL > 600){PWL=600;}
         TPM1->CONTROLS[0].CnV = PW1;
-        TPM0->CONTROLS[2].CnV = PWL;
-        TPM0->CONTROLS[0].CnV = PWR;
+        TPM0->CONTROLS[2].CnV = PWR;
+        TPM0->CONTROLS[0].CnV = PWL;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
+        
+        /*----------------------------------------------------------------------------
+        Elevation Check
+        *----------------------------------------------------------------------------*/
+        
+        if(elevation==0){
+          if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
+            elevation = 1;
+            PWL = PWR = 0;
+            TPM0->CONTROLS[2].CnV = PWR;
+            TPM0->CONTROLS[0].CnV = PWL;}
+        }
+        
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -532,7 +567,9 @@ int main (void) {
         sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
         sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
         sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-        sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
+        sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
+        sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
+        sprintf(str, "%d", turn); put("turn="); put(str); put("\r\n");
         put("Feedback history = ");
         for(j=0;j<20;j++){
           sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
