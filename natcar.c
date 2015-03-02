@@ -318,11 +318,9 @@ int max(int a, int b)
 
 int getPot1()
 {
-  int dutyA;
   ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
   while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
-  dutyA = ADC0->R[0]; //Read 8-bit digital value of POT1
-  return dutyA;
+  return ADC0->R[0]; //Read 8-bit digital value of POT1
 }//int getPot1()
 
 int getPot1PW()
@@ -330,6 +328,45 @@ int getPot1PW()
   int pot1PW = (600 * getPot1()) / 255;
   return pot1PW;
 }//int getPot1PW()
+
+void LED_Initialize(void) {
+
+  PORTB->PCR[18] = (1UL << 8);                      /* Pin PTB18 is GPIO */
+  PORTB->PCR[19] = (1UL << 8);                      /* Pin PTB19 is GPIO */
+  PORTD->PCR[1] = (1UL << 8);                      /* Pin PTD1  is GPIO */
+  PORTB->PCR[0] = (1UL << 8);  		/* Pin PTB0 is GPIO */
+  PORTB->PCR[1] = (1UL << 8);  		/* Pin PTB1 is GPIO */
+
+  FPTB->PDOR = (led_mask[0] | led_mask[1]);          /* switch Red/Green LED off  */
+  FPTB->PDDR = (led_mask[0] | led_mask[1] | 1UL << 0 | 1UL << 1);          /* enable PTB18/19/0/1 as Output */
+
+  FPTD->PDOR = led_mask[2];            /* switch Blue LED off  */
+  FPTD->PDDR = led_mask[2];            /* enable PTD1 as Output */
+}
+
+void LEDRed_On(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PCOR = led_mask[LED_RED];    /* Red LED On*/
+}
+
+void LEDBlue_On(void) {
+  FPTD->PCOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
+}
+
+void LEDGreen_On(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PCOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
+}
+
+void LEDAll_Off(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
+}
 
 void crashAndDump(char str[80], char err[80]){
   //Crash
@@ -397,23 +434,16 @@ int main (void) {
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
   put("Adjust motor speed with pot1, then press SW1 (A)\r\n");
-  while(SWA_Not_Pressed){
-    ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13);
-    while(!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) {;}
-    dutyA = ADC0->R[0];
-    PWinit = (600 * dutyA) / 255;
-    PW = PWinit;
-    TPM0->CONTROLS[0].CnV = PW;
-    TPM0->CONTROLS[2].CnV = PW;
-    if ((FPTC->PDIR & (1UL << 13))){SWA_Not_Pressed = 0;}
-  }
+  while (FPTC->PDIR & (1UL << 13)){};
+  dutyA = getPot1();
+  PW = PWinit = (600 * dutyA) / 255;
+  TPM0->CONTROLS[0].CnV = PW;
+  TPM0->CONTROLS[2].CnV = PW;
   fbTarget = 0.549 * (double)dutyA - 26.9;
-    if(fbTarget < 10){
-      fbTarget = 10;}
+  if(fbTarget < 10){
+    fbTarget = 10;}
+  LEDGreen_On();
   Start_PIT();
-  //PW = PWinit;
-  //TPM0->CONTROLS[0].CnV = PW; //Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
-  //TPM0->CONTROLS[2].CnV = PW; //Set pulse width of H_Bridge B according to POT1
 
   while (1){
     if (Done){
@@ -491,11 +521,7 @@ int main (void) {
         /*----------------------------------------------------------------------------
         Gradual Turn
         *----------------------------------------------------------------------------*/        
-        //voltMid1 is left cam, voltMid2 is right cam
-        //if (PW1 > PW1init+170 || PW1 < PW1init-170) { PW = PWinit - 50; } //SLOW FOR THE CONE ZONE (slow down car when doing severe turns)
-        //else { PW = PWinit; } //else go full speed
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
-
         //LEFT TURN
         if ((voltMid2 > 0) && (turn != 1)){
           //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
@@ -530,33 +556,33 @@ int main (void) {
             else {PW1=PW1init;}
           }
         }
-				
-        if (PW1 > 6400){ PW1 = 6400; } //Max right turn
-        if (PW1 < 3950){ PW1 = 3950; } //Max left turn
-        //if (PW1 > (PW1init - 100) && PW1 < (PW1init + 100)) {
-        //  PW1 = PW1init;
-        //}//homeostatic region: don't turn turn at all unless you need to turn at least a certain amount.
-        if (PWR < 0){PWR=0;}
-        else if (PWR > 600){PWR=600;}
-        if (PWL < 0){PWL=0;}
-        else if (PWL > 600){PWL=600;}
-        TPM1->CONTROLS[0].CnV = PW1;
-        TPM0->CONTROLS[2].CnV = PWR;
-        TPM0->CONTROLS[0].CnV = PWL;
         prevErr1 = voltMid1; prevErr2 = voltMid2;
-        
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        
-        if(elevation==0){
-          if((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
-            elevation = 1;
-            PWL = PWR = 0;
-            TPM0->CONTROLS[2].CnV = PWR;
-            TPM0->CONTROLS[0].CnV = PWL;}
+        if(elevation == 0){ //if elevation is flat ground
+          if ((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
+            elevation = 1; //detect uphill via rapid increase in DC motor feedback
+            LEDRed_On();
+          }
         }
-        
+        else if(elevation == 1){ //if previous elevation was going uphill
+          //Check if car is at top of hill
+          if(feedbackRing[0] - feedbackRing[19] >=5){
+            elevation = -1;
+            LEDBlue_On();
+          }
+        }
+        else if(elevation == -1){ //if elevation is downhill
+          //Check if car is at bottom of hill
+          if(feedbackRing[10] - feedbackRing[19] >=5){
+            elevation = 0;
+            LEDGreen_On();
+          }
+        }
+        //increase/decrease DC motor speeds to compensate for hills
+        PWL += elevation * 200;
+        PWR += elevation * 200;
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -580,6 +606,18 @@ int main (void) {
         sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
         sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
       }
+      /*----------------------------------------------------------------------------
+      Assign final new servo and DC motor Pulse Widths -- only do once per loop at end!
+      *----------------------------------------------------------------------------*/
+      if (PW1 > 6400){ PW1 = 6400; } //Max right turn
+      if (PW1 < 3950){ PW1 = 3950; } //Max left turn
+      if (PWR < 0){ PWR = 0; } //Min right motor speed
+      else if (PWR > 600){ PWR = 600; } //Max right motor speed
+      if (PWL < 0){ PWL = 0; } //Min left motor speed
+      else if (PWL > 600){ PWL = 600; } //Max left motor speed
+      TPM1->CONTROLS[0].CnV = PW1;
+      TPM0->CONTROLS[2].CnV = PWR;
+      TPM0->CONTROLS[0].CnV = PWL;
       /*----------------------------------------------------------------------------
       Pause
       *----------------------------------------------------------------------------*/
