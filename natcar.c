@@ -510,23 +510,23 @@ int main (void) {
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
         //LEFT TURN
         if (elevation == 0){
-          if ((voltMid2 > 0) && (turn != 1)){
+          if ((voltMid2 > 0) && ((voltMid1 < 25) || (turn == -1))  && (turn != 1)){
             //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = PW1init - 35*(voltMid2-14);
-            if(PW1 < PW1init - 200){
+            PW1 = PW1init - 30*(voltMid2-14);
+            if(PW1 < PW1init - 170){
               turn = 2;
-              PWR = 200 + 150;
-              PWL = 200 - 90;
+              PWR = 350;
+              PWL = 20;
             }
           }
           //RIGHT TURN
-          else if ((voltMid1 > 0) && (turn != 2)){
+          else if ((voltMid1 > 0) && ((voltMid2 < 25) || (turn == 1)) && (turn != 2)){
             //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = PW1init + 35*(voltMid1-14);
-            if(PW1 > PW1init + 200){
+            PW1 = PW1init + 30*(voltMid1-14);
+            if(PW1 > PW1init + 170){
               turn = 1;
-              PWR = 200 - 110;
-              PWL = 200 + 170;
+              PWR = 20;
+              PWL = 350;
             }
           }
           //STRAIGHT
@@ -545,29 +545,30 @@ int main (void) {
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
         }
-        else {
+        else if((elevation == -1) || (elevation == 1)){ 
           PW1 = PW1init;
         }
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
+        /*
         if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
-            if ((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
+            if ((feedbackRing[19] - feedbackRing[0] >= 3) && (feedbackRing[0] >= 5)){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               LEDRed_On();
             }
           }
           else if(elevation == 1){ //if previous elevation was going uphill
             //Check if car is at top of hill
-            if(feedbackRing[0] - feedbackRing[19] >=5){
+            if(feedbackRing[0] - feedbackRing[19] >=3){
               elevation = -1;
               LEDBlue_On();
             }
           }
           else if(elevation == -1){ //if elevation is downhill
             //Check if car is at bottom of hill
-            if(feedbackRing[10] - feedbackRing[19] >=5){
+            if(feedbackRing[10] - feedbackRing[19] >=3){
               elevation = 0;
               LEDGreen_On();
             }
@@ -576,6 +577,7 @@ int main (void) {
           PWL += elevation * 20;
           PWR += elevation * 20;
         }
+        */
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
