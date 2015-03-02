@@ -419,11 +419,12 @@ int main (void) {
   while (!(FPTC->PDIR & (1UL << 17))){;} //Poll until SW2 has been pressed
   enable_HBridge();
   put("Adjust motor speed with pot1, then press SW1 (A)\r\n");
-  while (FPTC->PDIR & (1UL << 13)){};
-  dutyA = getPot1();
-  PW = PWinit = (600 * dutyA) / 255;
-  TPM0->CONTROLS[0].CnV = PW;
-  TPM0->CONTROLS[2].CnV = PW;
+  while (!(FPTC->PDIR & (1UL << 13))){
+		dutyA = getPot1();
+		PW = PWinit = (600 * dutyA) / 255;
+		TPM0->CONTROLS[0].CnV = PW;
+		TPM0->CONTROLS[2].CnV = PW;
+	}
   fbTarget = 0.549 * (double)dutyA - 26.9;
   if(fbTarget < 10){
     fbTarget = 10;}
@@ -505,69 +506,76 @@ int main (void) {
         voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
         /*----------------------------------------------------------------------------
         Gradual Turn
-        *----------------------------------------------------------------------------*/        
+        *----------------------------------------------------------------------------*/
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
         //LEFT TURN
-        if ((voltMid2 > 0) && (turn != 1)){
-          //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-          PW1 = PW1init - 35*(voltMid2-14);
-          if(PW1 < PW1init - 170){
-            turn = 2;
-            PWR = 200 + 150;
-            PWL = 200 - 90;
+        if (elevation == 0){
+          if ((voltMid2 > 0) && (turn != 1)){
+            //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
+            PW1 = PW1init - 35*(voltMid2-14);
+            if(PW1 < PW1init - 200){
+              turn = 2;
+              PWR = 200 + 150;
+              PWL = 200 - 90;
+            }
           }
+          //RIGHT TURN
+          else if ((voltMid1 > 0) && (turn != 2)){
+            //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
+            PW1 = PW1init + 35*(voltMid1-14);
+            if(PW1 > PW1init + 200){
+              turn = 1;
+              PWR = 200 - 110;
+              PWL = 200 + 170;
+            }
+          }
+          //STRAIGHT
+          else{
+            turn=0;
+            if (PW1 > PW1init){ //If car in right turn
+              if (PW1-PW1init >= PWinit*(3/2)){
+                PW1-=PWinit*(3/2);}
+              else {PW1=PW1init;}
+            }
+            if (PW1 < PW1init){ //If car in left turn
+              if (PW1init-PW1 <= PWinit*(3/2)){
+                PW1+=PWinit*(3/2);}
+              else {PW1=PW1init;}
+            }
+          }
+          prevErr1 = voltMid1; prevErr2 = voltMid2;
         }
-        //RIGHT TURN
-        else if ((voltMid1 > 0) && (turn != 2)){
-          //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-          PW1 = PW1init + 35*(voltMid1-14);
-          if(PW1 > PW1init + 170){
-            turn = 1;
-            PWR = 200 + 170;
-            PWL = 200 - 110;
-          }
+        else if((elevation != 0) && ((PW1 >= PW1init-170) || (PW1 <= PW1init+170))){
+          PW1 = PW1init;
         }
-        //STRAIGHT
-        else{
-          turn=0;
-          if (PW1 > PW1init){ //If car in right turn
-            if (PW1-PW1init >= PWinit*(3/2)){
-              PW1-=PWinit*(3/2);}
-            else {PW1=PW1init;}
-          }
-          if (PW1 < PW1init){ //If car in left turn
-            if (PW1init-PW1 <= PWinit*(3/2)){
-              PW1+=PWinit*(3/2);}
-            else {PW1=PW1init;}
-          }
-        }
-        prevErr1 = voltMid1; prevErr2 = voltMid2;
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        if(elevation == 0){ //if elevation is flat ground
-          if ((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
-            elevation = 1; //detect uphill via rapid increase in DC motor feedback
-            LEDRed_On();
+        if((PW1 >= PW1init-200) || (PW1 <= PW1init+200)){
+          if(elevation == 0){ //if elevation is flat ground
+            if ((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
+              elevation = 1; //detect uphill via rapid increase in DC motor feedback
+              LEDRed_On();
+            }
           }
-        }
-        else if(elevation == 1){ //if previous elevation was going uphill
-          //Check if car is at top of hill
-          if(feedbackRing[0] - feedbackRing[19] >=5){
-            elevation = -1;
-            LEDBlue_On();
+          else if(elevation == 1){ //if previous elevation was going uphill
+            //Check if car is at top of hill
+            if(feedbackRing[0] - feedbackRing[19] >=5){
+              elevation = -1;
+              LEDBlue_On();
+            }
           }
-        }
-        else if(elevation == -1){ //if elevation is downhill
-          //Check if car is at bottom of hill
-          if(feedbackRing[10] - feedbackRing[19] >=5){
-            elevation = 0;
-            LEDGreen_On();
+          else if(elevation == -1){ //if elevation is downhill
+            //Check if car is at bottom of hill
+            if(feedbackRing[10] - feedbackRing[19] >=5){
+              elevation = 0;
+              LEDGreen_On();
+            }
           }
+          //increase/decrease DC motor speeds to compensate for hills
+          PWL += elevation * 20;
+          PWR += elevation * 20;
         }
-        //increase/decrease DC motor speeds to compensate for hills
-        PWL += elevation * 20;
-        PWR += elevation * 20;
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
