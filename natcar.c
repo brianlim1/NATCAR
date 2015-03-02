@@ -353,6 +353,15 @@ void LEDAll_Off(void) {
   FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
 }
 
+double slope(){
+	double sum = 0;
+	int i;
+	for (i = 0; i < 19; i++) {
+		sum += (feedbackRing[i+1] - feedbackRing[i]);
+	}
+	return sum/20;
+}
+
 void crashAndDump(char str[80], char err[80]){
   //Crash
   PW=0;
@@ -369,7 +378,7 @@ void crashAndDump(char str[80], char err[80]){
   sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
   sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
   sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-  sprintf(str, "%d", elevation); put("elevation="); put(str); put("\r\n");
+  sprintf(str, "%d", elevation); put("elevation="); put(str); put(" ");
   put("Feedback history = ");
   for(j=0;j<20;j++){
     sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
@@ -510,28 +519,29 @@ int main (void) {
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
         //LEFT TURN
         if (elevation == 0){
-          if ((voltMid2 > 0) && ((voltMid1 < 25) || (turn == -1))  && (turn != 1)){
+          if ((voltMid2 > 0) && (turn != 1)){
             //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = PW1init - 30*(voltMid2-14);
+            PW1 = PW1init - 35*(voltMid2-14);
             if(PW1 < PW1init - 170){
               turn = 2;
-              PWR = 350;
+              PWR = PWinit + 250;
               PWL = 20;
             }
           }
           //RIGHT TURN
-          else if ((voltMid1 > 0) && ((voltMid2 < 25) || (turn == 1)) && (turn != 2)){
+          else if ((voltMid1 > 0) && (turn != 2)){
             //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = PW1init + 30*(voltMid1-14);
+            PW1 = PW1init + 35*(voltMid1-14);
             if(PW1 > PW1init + 170){
               turn = 1;
               PWR = 20;
-              PWL = 350;
+              PWL = PWinit + 150;
             }
           }
           //STRAIGHT
           else{
             turn=0;
+            PWL = PWR = PWinit;
             if (PW1 > PW1init){ //If car in right turn
               if (PW1-PW1init >= PWinit*(3/2)){
                 PW1-=PWinit*(3/2);}
@@ -551,24 +561,23 @@ int main (void) {
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        /*
         if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
-            if ((feedbackRing[19] - feedbackRing[0] >= 3) && (feedbackRing[0] >= 5)){
+            if ((slope() >= 1) && (feedbackRing[19] >= (fbTarget + 10)) && (feedbackRing[19] <= (fbTarget + 20))){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               LEDRed_On();
             }
           }
           else if(elevation == 1){ //if previous elevation was going uphill
             //Check if car is at top of hill
-            if(feedbackRing[0] - feedbackRing[19] >=3){
+            if(slope() <= -0.5){
               elevation = -1;
               LEDBlue_On();
             }
           }
           else if(elevation == -1){ //if elevation is downhill
             //Check if car is at bottom of hill
-            if(feedbackRing[10] - feedbackRing[19] >=3){
+            if(slope() >= 0 && slope() <= 1){
               elevation = 0;
               LEDGreen_On();
             }
@@ -577,7 +586,6 @@ int main (void) {
           PWL += elevation * 20;
           PWR += elevation * 20;
         }
-        */
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -590,7 +598,8 @@ int main (void) {
         sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
         sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
         sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
-        sprintf(str, "%d", turn); put("turn="); put(str); put("\r\n");
+        sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
+        sprintf(str, "%f", slope()); put("slope="); put(str); put("\r\n");
         put("Feedback history = ");
         for(j=0;j<20;j++){
           sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
