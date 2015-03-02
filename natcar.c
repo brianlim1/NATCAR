@@ -545,13 +545,13 @@ int main (void) {
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
         }
-        else if((elevation != 0) && ((PW1 >= PW1init-170) || (PW1 <= PW1init+170))){
+        else {
           PW1 = PW1init;
         }
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        if((PW1 >= PW1init-200) || (PW1 <= PW1init+200)){
+        if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
             if ((feedbackRing[19] - feedbackRing[0] >= 4) && (feedbackRing[0] >= 10) && (turn == 0)){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
