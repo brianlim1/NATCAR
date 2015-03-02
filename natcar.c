@@ -329,21 +329,6 @@ int getPot1PW()
   return pot1PW;
 }//int getPot1PW()
 
-void LED_Initialize(void) {
-
-  PORTB->PCR[18] = (1UL << 8);                      /* Pin PTB18 is GPIO */
-  PORTB->PCR[19] = (1UL << 8);                      /* Pin PTB19 is GPIO */
-  PORTD->PCR[1] = (1UL << 8);                      /* Pin PTD1  is GPIO */
-  PORTB->PCR[0] = (1UL << 8);  		/* Pin PTB0 is GPIO */
-  PORTB->PCR[1] = (1UL << 8);  		/* Pin PTB1 is GPIO */
-
-  FPTB->PDOR = (led_mask[0] | led_mask[1]);          /* switch Red/Green LED off  */
-  FPTB->PDDR = (led_mask[0] | led_mask[1] | 1UL << 0 | 1UL << 1);          /* enable PTB18/19/0/1 as Output */
-
-  FPTD->PDOR = led_mask[2];            /* switch Blue LED off  */
-  FPTD->PDDR = led_mask[2];            /* enable PTD1 as Output */
-}
-
 void LEDRed_On(void) {
   FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
   FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
@@ -528,8 +513,8 @@ int main (void) {
           PW1 = PW1init - 35*(voltMid2-14);
           if(PW1 < PW1init - 170){
             turn = 2;
-            PWR = PWinit+130;
-            PWL = PWinit-70;
+            PWR = 200 + 150;
+            PWL = 200 - 90;
           }
         }
         //RIGHT TURN
@@ -538,8 +523,8 @@ int main (void) {
           PW1 = PW1init + 35*(voltMid1-14);
           if(PW1 > PW1init + 170){
             turn = 1;
-            PWR = PWinit-70;
-            PWL = PWinit+130;
+            PWR = 200 + 170;
+            PWL = 200 - 110;
           }
         }
         //STRAIGHT
@@ -581,8 +566,8 @@ int main (void) {
           }
         }
         //increase/decrease DC motor speeds to compensate for hills
-        PWL += elevation * 200;
-        PWR += elevation * 200;
+        PWL += elevation * 20;
+        PWR += elevation * 20;
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -606,18 +591,6 @@ int main (void) {
         sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
         sum2=0;avg2=0;max2=0;min2=400;voltMid2=0;voltCounter2=0;
       }
-      /*----------------------------------------------------------------------------
-      Assign final new servo and DC motor Pulse Widths -- only do once per loop at end!
-      *----------------------------------------------------------------------------*/
-      if (PW1 > 6400){ PW1 = 6400; } //Max right turn
-      if (PW1 < 3950){ PW1 = 3950; } //Max left turn
-      if (PWR < 0){ PWR = 0; } //Min right motor speed
-      else if (PWR > 600){ PWR = 600; } //Max right motor speed
-      if (PWL < 0){ PWL = 0; } //Min left motor speed
-      else if (PWL > 600){ PWL = 600; } //Max left motor speed
-      TPM1->CONTROLS[0].CnV = PW1;
-      TPM0->CONTROLS[2].CnV = PWR;
-      TPM0->CONTROLS[0].CnV = PWL;
       /*----------------------------------------------------------------------------
       Pause
       *----------------------------------------------------------------------------*/
@@ -651,6 +624,18 @@ int main (void) {
           }
         }
       }
+      /*----------------------------------------------------------------------------
+      Assign final new servo and DC motor Pulse Widths -- only do once per loop at end!
+      *----------------------------------------------------------------------------*/
+      if (PW1 > 6400){ PW1 = 6400; } //Max right turn
+      if (PW1 < 3950){ PW1 = 3950; } //Max left turn
+      if (PWR < 0){ PWR = 0; } //Min right motor speed
+      else if (PWR > 600){ PWR = 600; } //Max right motor speed
+      if (PWL < 0){ PWL = 0; } //Min left motor speed
+      else if (PWL > 600){ PWL = 600; } //Max left motor speed
+      TPM1->CONTROLS[0].CnV = PW1;
+      TPM0->CONTROLS[2].CnV = PWR;
+      TPM0->CONTROLS[0].CnV = PWL;
     }
     else if(!Done){continue;}
   }//main loop //Loop through the main sequence forever
