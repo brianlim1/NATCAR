@@ -37,7 +37,8 @@ int voltThreshold1; int voltThreshold2;
 int R_IFB; int L_IFB; int avg_IFB;
 int PWinit=260;
 int PW1init=5100; //Center of servo motor
-int feedbackRing[20];
+int feedbackRingL[20];
+int feedbackRingR[20];
 int turn=0; //0 for neutral, 1 for right, 2 for left
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -142,14 +143,17 @@ void ADC0_IRQHandler() {
   else if (i>=128){
     if (CLKcount == 129){
       R_IFB = ADC0->R[0];
+      for (j=0;j<19;j++){
+        feedbackRingR[j] = feedbackRingR[j+1];
+      }
+      feedbackRingR[19] = R_IFB;
     }
     else if(CLKcount == 130){
       L_IFB = ADC0->R[0];
-      avg_IFB = (R_IFB + L_IFB)/2;
       for (j=0;j<19;j++){
-        feedbackRing[j] = feedbackRing[j+1];
+        feedbackRingL[j] = feedbackRingL[j+1];
       }
-      feedbackRing[19] = avg_IFB;
+      feedbackRingL[19] = L_IFB;
     }
   }
   if(camSwitch == 1){ //If AO1 has just been converted, start conversion on AO2
@@ -353,13 +357,31 @@ void LEDAll_Off(void) {
   FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
 }
 
-double slope(){
+double slopeAvg(){
 	double sum = 0;
 	int i;
-	for (i = 0; i < 19; i++) {
-		sum += (feedbackRing[i+1] - feedbackRing[i]);
+	for (i = 15; i < 19; i++) {
+		sum += ((feedbackRingL[i+1] - feedbackRingL[i]) + (feedbackRingR[i+1] - feedbackRingR[i]));
 	}
-	return sum/20;
+	return sum/8;
+}
+
+double slopeL(){
+	double sum = 0;
+	int i;
+	for (i = 15; i < 19; i++) {
+		sum += (feedbackRingL[i+1] - feedbackRingL[i]);
+	}
+	return sum/4;
+}
+
+double slopeR(){
+	double sum = 0;
+	int i;
+	for (i = 15; i < 19; i++) {
+		sum += (feedbackRingR[i+1] - feedbackRingR[i]);
+	}
+	return sum/4;
 }
 
 void crashAndDump(char str[80], char err[80]){
@@ -379,9 +401,11 @@ void crashAndDump(char str[80], char err[80]){
   sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
   sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
   sprintf(str, "%d", elevation); put("elevation="); put(str); put(" ");
-  put("Feedback history = ");
+  put("Feedback history L/R= ");
   for(j=0;j<20;j++){
-    sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
+    sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
+  for(j=0;j<20;j++){
+    sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
   put("\r\n");
   put("Press any key to continue!\r\n");
   while (1){
@@ -518,24 +542,24 @@ int main (void) {
         *----------------------------------------------------------------------------*/
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
         //LEFT TURN
-        if (elevation == 0){
-          if ((voltMid2 > 0) && (turn != 1)){
+        if (elevation == 0){ //don't turn during uphill (red)
+          if ((voltMid2 > 0) && (turn != 1) && ((turn == 2) || (voltMid1 == -1))){
             //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = PW1init - 35*(voltMid2-14);
+            PW1 = PW1init - 30*(voltMid2-14);
             if(PW1 < PW1init - 170){
               turn = 2;
-              PWR = PWinit + 250;
-              PWL = 20;
+              PWR = PWinit + 130;
+              PWL = PWinit - 70;;
             }
           }
           //RIGHT TURN
-          else if ((voltMid1 > 0) && (turn != 2)){
+          else if ((voltMid1 > 14) && (turn != 2) && ((turn == 1) || (voltMid2 == -1))){
             //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = PW1init + 35*(voltMid1-14);
+            PW1 = PW1init + 30*(voltMid1-14);
             if(PW1 > PW1init + 170){
               turn = 1;
-              PWR = 20;
-              PWL = PWinit + 150;
+              PWR = PWinit - 70;
+              PWL = PWinit + 130;
             }
           }
           //STRAIGHT
@@ -555,36 +579,43 @@ int main (void) {
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
         }
-        else if((elevation == -1) || (elevation == 1)){ 
+        else if((elevation == 1) || (elevation == -1)){ 
           PW1 = PW1init;
         }
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
+        
         if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
-            if ((slope() >= 1) && (feedbackRing[19] >= (fbTarget + 10)) && (feedbackRing[19] <= (fbTarget + 20))){
+            if ((slopeAvg() >= 2) && (slopeL() <= (slopeR() + 5) && (slopeR() <= (slopeL() + 5)))){
               elevation = 1; //detect uphill via rapid increase in DC motor feedback
               LEDRed_On();
             }
           }
-          else if(elevation == 1){ //if previous elevation was going uphill
+          else if (elevation == 1){ //if previous elevation was uphill
             //Check if car is at top of hill
-            if(slope() <= -0.5){
+            if(slopeAvg() <= -2){
               elevation = -1;
               LEDBlue_On();
             }
           }
-          else if(elevation == -1){ //if elevation is downhill
-            //Check if car is at bottom of hill
-            if(slope() >= 0 && slope() <= 1){
+					else if (elevation == -1) {//if current elevation is downhill
+						if (slopeAvg() >=0.4){
               elevation = 0;
               LEDGreen_On();
-            }
-          }
+						}
+					}
           //increase/decrease DC motor speeds to compensate for hills
-          PWL += elevation * 20;
-          PWR += elevation * 20;
+				
+					if (slopeAvg() <= -2.5) {
+						PWL = PWL/3;
+						PWR = PWR/3;
+						LEDBlue_On();
+					}
+					else
+						LEDGreen_On();
+					
         }
         /*----------------------------------------------------------------------------
         Print data
@@ -599,10 +630,12 @@ int main (void) {
         sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
         sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
         sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
-        sprintf(str, "%f", slope()); put("slope="); put(str); put("\r\n");
+        sprintf(str, "%f", slopeAvg()); put("slope="); put(str); put("\r\n");
         put("Feedback history = ");
         for(j=0;j<20;j++){
-          sprintf(str, "%d", feedbackRing[j]); put(str); put(" ");}
+          sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
+        for(j=0;j<20;j++){
+          sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
         put("\r\n");
 
         __enable_irq();
