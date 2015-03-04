@@ -39,6 +39,8 @@ int PWinit=260;
 int PW1init=5100; //Center of servo motor
 int feedbackRingL[20];
 int feedbackRingR[20];
+int flagLeft;
+int flagRight;
 int turn=0; //0 for neutral, 1 for right, 2 for left
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -513,6 +515,7 @@ int main (void) {
           count=0;
           voltThreshold1 = (max1+min1)/2;
           voltThreshold2 = (max2+min2)/2;
+          flagLeft = flagRight = 0;
           while(count<128){
             if(count>14 & count< 113){
               //Begin voltage scheme
@@ -521,13 +524,23 @@ int main (void) {
               else if(pong1[count] < voltThreshold1){
                 zeroOne1[count] = '0';
                 voltMid1 += count;
-                voltCounter1++;}
+                voltCounter1++;
+                if(count<64){
+                  flagLeft = 1;}
+                else{
+                  flagRight = 1;}
+              }
               if(pong2[count] >= voltThreshold2)
                 {zeroOne2[count] = '1';}
               else if(pong2[count] < voltThreshold2){
                 zeroOne2[count] = '0';
                 voltMid2 += count;
-                voltCounter2++;}
+                voltCounter2++;
+                if(count<64){
+                  flagLeft = 1;}
+                else{
+                  flagRight = 1;}
+              }
             }
             else
               {zeroOne1[count]='1';
@@ -605,10 +618,18 @@ int main (void) {
         }
         else if((elevation == 1) || (elevation == -1)){ 
           PW1 = PW1init;
+          PWL = PWR = 0;
         }
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
+        if((flagLeft) && (flagRight)){
+          elevation = 1;
+          crashAndDump(str,"hill");
+          //LEDRed_On();
+          }
+        else{
+          elevation = 0;}
         /*
         if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
