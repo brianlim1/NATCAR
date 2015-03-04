@@ -543,9 +543,10 @@ int main (void) {
         PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
         //LEFT TURN
         if (elevation == 0){ //don't turn during uphill (red)
-          if ((voltMid2 > 0) && (turn != 1) && ((turn == 2) || (voltMid1 == -1))){
+          /*
+          if ((voltMid2 > 65) && (turn != 1) && (voltMid1 <= 30)){
             //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = PW1init - 30*(voltMid2-14);
+            PW1 = PW1init - 10*(voltMid2-65);
             if(PW1 < PW1init - 170){
               turn = 2;
               PWR = PWinit + 130;
@@ -553,27 +554,50 @@ int main (void) {
             }
           }
           //RIGHT TURN
-          else if ((voltMid1 > 14) && (turn != 2) && ((turn == 1) || (voltMid2 == -1))){
+          else if ((voltMid1 > 55) && (turn != 2) && (voltMid2 <= 30)){
             //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = PW1init + 30*(voltMid1-14);
+            PW1 = PW1init + 10*(voltMid1-55);
             if(PW1 > PW1init + 170){
               turn = 1;
               PWR = PWinit - 70;
               PWL = PWinit + 130;
             }
           }
+          */
+          //RIGHT TURN
+          if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
+            PW1 = PW1init + 39*(voltMid2-15);
+            
+            if(PW1 > PW1init + 170){
+              turn = 1;
+              PWR = PWinit - 80;
+              PWL = PWinit + 150;
+            }
+            
+          }
+          //LEFT TURN
+          else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
+            PW1 = PW1init - 39*(113-voltMid2);
+            
+            if(PW1 < PW1init - 170){
+              turn = 2;
+              PWR = PWinit + 150;
+              PWL = PWinit - 80;;
+            }
+            
+          }
           //STRAIGHT
           else{
-            turn=0;
+            turn = 0;
             PWL = PWR = PWinit;
             if (PW1 > PW1init){ //If car in right turn
-              if (PW1-PW1init >= PWinit*(3/2)){
-                PW1-=PWinit*(3/2);}
+              if (PW1-PW1init >= PWinit){
+                PW1-=PWinit;}
               else {PW1=PW1init;}
             }
             if (PW1 < PW1init){ //If car in left turn
-              if (PW1init-PW1 <= PWinit*(3/2)){
-                PW1+=PWinit*(3/2);}
+              if (PW1init-PW1 <= PWinit){
+                PW1+=PWinit;}
               else {PW1=PW1init;}
             }
           }
@@ -585,7 +609,7 @@ int main (void) {
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        
+        /*
         if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
           if(elevation == 0){ //if elevation is flat ground
             if ((slopeAvg() >= 2) && (slopeL() <= (slopeR() + 5) && (slopeR() <= (slopeL() + 5)))){
@@ -616,12 +640,12 @@ int main (void) {
 					else
 						LEDGreen_On();
 					
-        }
+        }*/
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
-        put("Left Cam:  "); put(zeroOne1); //put("\r\n");
-        sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
+        //put("Left Cam:  "); put(zeroOne1); //put("\r\n");
+        //sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
         sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
         put("Right Cam: ");put(zeroOne2); //put("\r\n");
         sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
