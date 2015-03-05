@@ -616,17 +616,19 @@ int main (void) {
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
         }
-        else if((elevation == 1) || (elevation == -1)){ 
+        else if((elevation == 1) || (elevation == -1)){
           PW1 = PW1init;
           PWL = PWR = 0;
         }
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/
-        if((flagLeft) && (flagRight)){
+        if((flagLeft) && (flagRight) && (turn == 0)){
+          PWL = PWR = 0;
+          TPM0->CONTROLS[2].CnV = PWR;
+          TPM0->CONTROLS[0].CnV = PWL;
+          LEDRed_On();
           elevation = 1;
-          crashAndDump(str,"hill");
-          //LEDRed_On();
           }
         else{
           elevation = 0;}
@@ -667,21 +669,21 @@ int main (void) {
         *----------------------------------------------------------------------------*/
         //put("Left Cam:  "); put(zeroOne1); //put("\r\n");
         //sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
-        sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
+        //sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
         put("Right Cam: ");put(zeroOne2); //put("\r\n");
         sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
         sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
-        sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-        sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
-        sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
-        sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
-        sprintf(str, "%f", slopeAvg()); put("slope="); put(str); put("\r\n");
-        put("Feedback history = ");
-        for(j=0;j<20;j++){
-          sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
-        for(j=0;j<20;j++){
-          sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
-        put("\r\n");
+        //sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+        //sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
+        //sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
+        //sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
+        //sprintf(str, "%f", slopeAvg()); put("slope="); put(str); put("\r\n");
+        //put("Feedback history = ");
+        //for(j=0;j<20;j++){
+        //  sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
+        //for(j=0;j<20;j++){
+        //  sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
+        //put("\r\n");
 
         __enable_irq();
         Done=0;count=0;
