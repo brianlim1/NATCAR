@@ -590,8 +590,8 @@ int main (void) {
           PW1 = PW1init + 45*(voltMid2-15);
           if(PW1 > PW1init + 220){
             turn = 1;
-            PWR = PWinit - 70;
-            PWL = PWinit + 130;
+            PWR = PWinit - 120;
+            PWL = PWinit + 80;
           }
         }
         //LEFT TURN
@@ -599,8 +599,8 @@ int main (void) {
           PW1 = PW1init - 45*(113-voltMid2);
           if(PW1 < PW1init + 220){
             turn = 2;
-            PWR = PWinit + 130;
-            PWL = PWinit - 70;
+            PWR = PWinit + 80;
+            PWL = PWinit - 120;
           }
         }
         //STRAIGHT
