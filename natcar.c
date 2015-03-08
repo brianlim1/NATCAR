@@ -8,6 +8,7 @@
 #include "main.h"
 #include "adc16.h"
 #include "stdio.h"
+#include "signal.h"
 
 void init_ADC0(void);
 
@@ -22,6 +23,8 @@ const uint32_t led_mask[] = {1UL << 18, 1UL << 19, 1UL << 1};
 int dutyA; int dutyB;
 int dutyApercent; int dutyBpercent;
 int CLKcount=0;
+int speedCounter=0;
+int hillCounter=0;
 int buffSwitch = 2;
 int camSwitch = 1;
 int i=0; int j=0;
@@ -46,6 +49,7 @@ char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
 char zeroOne1[130]; char zeroOne2[130];
 char ascii[2];
+char str[80];
 char key;
 short hill = 30; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
 short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
@@ -60,6 +64,11 @@ short fbTarget = 10;
 #define LED_D      3
 #define LED_CLK    4
 #define CLOCK_SETUP 1
+
+
+/*----------------------------------------------------------------------------
+Utility functions
+*----------------------------------------------------------------------------*/
 
 int charToInt(char c){
   int res;
@@ -86,6 +95,117 @@ void put(char *ptr_str){
   while(*ptr_str)
   uart0_putchar(*ptr_str++);
 }
+
+int max(int a, int b)
+{
+  if (a > b)
+    return a;
+  return b;
+}
+
+int getPot1()
+{
+  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
+  while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
+  return ADC0->R[0]; //Read 8-bit digital value of POT1
+}//int getPot1()
+
+int getPot1PW()
+{
+  int pot1PW = (600 * getPot1()) / 255;
+  return pot1PW;
+}//int getPot1PW()
+
+void LEDRed_On(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PCOR = led_mask[LED_RED];    /* Red LED On*/
+}
+
+void LEDBlue_On(void) {
+  FPTD->PCOR = led_mask[LED_BLUE];   /* Blue LED On*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED Off*/
+}
+
+void LEDGreen_On(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PCOR = led_mask[LED_GREEN];  /* Green LED On*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED Off*/
+}
+
+void LEDAll_Off(void) {
+  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
+  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
+  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
+}
+
+double slopeAvg(){
+	double sum = 0;
+	int i;
+	for (i = 15; i < 19; i++) {
+		sum += ((feedbackRingL[i+1] - feedbackRingL[i]) + (feedbackRingR[i+1] - feedbackRingR[i]));
+	}
+	return sum/8;
+}
+
+double slopeL(){
+	double sum = 0;
+	int i;
+	for (i = 15; i < 19; i++) {
+		sum += (feedbackRingL[i+1] - feedbackRingL[i]);
+	}
+	return sum/4;
+}
+
+double slopeR(){
+	double sum = 0;
+	int i;
+	for (i = 15; i < 19; i++) {
+		sum += (feedbackRingR[i+1] - feedbackRingR[i]);
+	}
+	return sum/4;
+}
+
+void crashAndDump(char str[80], char err[80]){
+  //Crash
+  PW=0;
+  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
+  TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+  put("\r\n");
+  put(err);
+  put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
+  //Dump
+  //put("Left Cam:  ");put(zeroOne1); //put("\r\n");
+  //sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
+  //sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
+  put("Right Cam: ");put(zeroOne2); //put("\r\n");
+  sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
+  sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
+  sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+  sprintf(str, "%d", elevation); put("elevation="); put(str); put(" ");
+  //put("Feedback history L/R= ");
+  //for(j=0;j<20;j++){
+  //  sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
+  //for(j=0;j<20;j++){
+  //  sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
+  put("\r\n");
+  put("Press any key to continue!\r\n");
+/*
+  while (1){
+    key = uart0_getchar();
+    __enable_irq();
+    Start_PIT();
+    count = 0; Done = 0;
+    PW = getPot1PW();
+    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
+    TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
+    return;
+  }
+*/
+  return;
+}//void crashAndDump()
+
 
 void LED_Initialize(void) {
   SIM->SCGC5    |= (1UL << 10) | (1UL << 12); //Enable Clock to Port B & D  
@@ -265,13 +385,16 @@ void Init_PIT(unsigned period_us) {
   SIM->SCGC6 |= SIM_SCGC6_PIT_MASK; //Enable clock gate to PIT module
   PIT->MCR &= ~PIT_MCR_MDIS_MASK; //Enable PIT clock module
   PIT->MCR |= PIT_MCR_FRZ_MASK; //Freeze clocks when debugging
-  PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(24*period_us); //Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 100Hz
+  PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(24*period_us); //Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 25Hz
   PIT->CHANNEL[0].TCTRL &= PIT_TCTRL_CHN_MASK; //Disable chaining
   PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK; //Enables timer interrupts when timer reaches 0
+  PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(24*15*period_us); //Load countdown value to Channel 1 of PIT; Gives interrupt frequency of 1Hz
+  PIT->CHANNEL[1].TCTRL &= PIT_TCTRL_CHN_MASK;
+  PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TIE_MASK;
   //Enable Interrupts
   NVIC_SetPriority(PIT_IRQn, 128); //0, 64, 128 or 192
   NVIC_ClearPendingIRQ(PIT_IRQn); 
-  NVIC_EnableIRQ(PIT_IRQn);	
+  NVIC_EnableIRQ(PIT_IRQn);
 }
 
 void Start_PIT(void) {
@@ -280,6 +403,12 @@ void Start_PIT(void) {
 void Stop_PIT(void) {
   PIT->CHANNEL[0].TCTRL &= ~PIT_TCTRL_TEN_MASK;} //Disables timer
 
+void Start_PIT1(void) {
+  PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TEN_MASK;}
+
+void Stop_PIT1(void) {
+  PIT->CHANNEL[1].TCTRL &= ~PIT_TCTRL_TEN_MASK;}
+
 
 void PIT_IRQHandler(void) {
   //clear pending IRQ
@@ -287,6 +416,7 @@ void PIT_IRQHandler(void) {
 	
   //check to see which channel triggered interrupt 
   if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {	
+    //FPTB->PTOR = led_mask[LED_GREEN];
     FPTD->PTOR = (1UL << 7); //Toggle PTD7 high (SI)
     FPTB->PTOR = (1UL << 0); //Toggle PTB0 (conversion time measure)
     PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK; //Clear interrupt flag for Channel 0
@@ -299,9 +429,24 @@ void PIT_IRQHandler(void) {
     ADC0->SC1[0] = AIEN_ON | DIFF_SINGLE | ADC_SC1_ADCH(6); //Start ADC conversion on ADC0_SE6b
   }
   else if (PIT->CHANNEL[1].TFLG & PIT_TFLG_TIF_MASK) {
-    PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;}	//Clear interrupt flag for Channel 1
+    PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;
+    LEDGreen_On();
+    elevation = 0;
+    Stop_PIT1();
+  }	//Clear interrupt flag for Channel 1
 }
-
+/*----------------------------------------------------------------------------
+  SysTick_Handler
+ *----------------------------------------------------------------------------*/
+void SysTick_Handler(void) { /*Systick Interrupt Function*/
+  speedCounter++;
+  if((speedCounter == 2) || (speedCounter == 4)){
+    FPTD->PTOR = led_mask[LED_BLUE];
+    if (speedCounter == 4){
+      speedCounter = 0;
+    }
+  }
+}
 
 /*----------------------------------------------------------------------------
 	H-Bridge functions
@@ -312,122 +457,13 @@ void disable_HBridge(void){
 void enable_HBridge(void){
   FPTE->PSOR = (1UL << 21);}
 
-/*----------------------------------------------------------------------------
-Utility functions
-*----------------------------------------------------------------------------*/
-int max(int a, int b)
-{
-  if (a > b)
-    return a;
-  return b;
-}
-
-int getPot1()
-{
-  ADC0->SC1[0] = DIFF_SINGLE | ADC_SC1_ADCH(13); //Start ADC conversion on ADC0_SE13 without interrupt(PTB3; POT1)
-  while (!(ADC0->SC1[0] & ADC_SC1_COCO_MASK)) { ; } //wait for conversion to complete (polling)
-  return ADC0->R[0]; //Read 8-bit digital value of POT1
-}//int getPot1()
-
-int getPot1PW()
-{
-  int pot1PW = (600 * getPot1()) / 255;
-  return pot1PW;
-}//int getPot1PW()
-
-void LEDRed_On(void) {
-  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
-  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
-  FPTB->PCOR = led_mask[LED_RED];    /* Red LED On*/
-}
-
-void LEDBlue_On(void) {
-  FPTD->PCOR = led_mask[LED_BLUE];   /* Blue LED Off*/
-  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
-  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
-}
-
-void LEDGreen_On(void) {
-  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
-  FPTB->PCOR = led_mask[LED_GREEN];  /* Green LED Off*/
-  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
-}
-
-void LEDAll_Off(void) {
-  FPTD->PSOR = led_mask[LED_BLUE];   /* Blue LED Off*/
-  FPTB->PSOR = led_mask[LED_GREEN];  /* Green LED Off*/
-  FPTB->PSOR = led_mask[LED_RED];    /* Red LED On*/
-}
-
-double slopeAvg(){
-	double sum = 0;
-	int i;
-	for (i = 15; i < 19; i++) {
-		sum += ((feedbackRingL[i+1] - feedbackRingL[i]) + (feedbackRingR[i+1] - feedbackRingR[i]));
-	}
-	return sum/8;
-}
-
-double slopeL(){
-	double sum = 0;
-	int i;
-	for (i = 15; i < 19; i++) {
-		sum += (feedbackRingL[i+1] - feedbackRingL[i]);
-	}
-	return sum/4;
-}
-
-double slopeR(){
-	double sum = 0;
-	int i;
-	for (i = 15; i < 19; i++) {
-		sum += (feedbackRingR[i+1] - feedbackRingR[i]);
-	}
-	return sum/4;
-}
-
-void crashAndDump(char str[80], char err[80]){
-  //Crash
-  PW=0;
-  TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
-  TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
-  put("\r\n");
-  put(err);
-  put("\r\nYou wanted me to die in this situation. Here's the last thing I saw:\r\n");
-  //Dump
-  put("Left Cam:  ");put(zeroOne1); //put("\r\n");
-  sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
-  sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
-  put("Right Cam: ");put(zeroOne2); //put("\r\n");
-  sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
-  sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
-  sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-  sprintf(str, "%d", elevation); put("elevation="); put(str); put(" ");
-  put("Feedback history L/R= ");
-  for(j=0;j<20;j++){
-    sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
-  for(j=0;j<20;j++){
-    sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
-  put("\r\n");
-  put("Press any key to continue!\r\n");
-  while (1){
-    key = uart0_getchar();
-    __enable_irq();
-    Start_PIT();
-    count = 0; Done = 0;
-    PW = getPot1PW();
-    TPM0->CONTROLS[0].CnV = PW;	//Set pulse width of H_Bridge A according to POT1 (LEFT MOTOR)
-    TPM0->CONTROLS[2].CnV = PW;	//Set pulse width of H_Bridge B according to POT1
-    return;
-  }
-}//void crashAndDump()
 
 /*----------------------------------------------------------------------------
   MAIN function
  *----------------------------------------------------------------------------*/
 int main (void) {
   //variables
-  char str[80];
+  //char str[80];
   int uart0_clk_khz;
 	int SWA_Not_Pressed = 1;
   //initialization code
@@ -444,6 +480,7 @@ int main (void) {
   uart0_init (uart0_clk_khz, TERMINAL_BAUD);
   SystemCoreClockUpdate();
   LED_Initialize();
+  SysTick_Config(12000000);
   Init_PWM();
   Init_PIT(40000); //Load countdown value to Channel 0 of PIT; interrupt frequency = 50Hz
   Init_ADC();
@@ -526,9 +563,13 @@ int main (void) {
                 voltMid1 += count;
                 voltCounter1++;
                 if(count<64){
-                  flagLeft = 1;}
+                  flagLeft = 1;
+                }
+                else if(count==64){
+                  flagLeft = 0;}
                 else{
-                  flagRight = 1;}
+                  flagRight = 1;
+                }
               }
               if(pong2[count] >= voltThreshold2)
                 {zeroOne2[count] = '1';}
@@ -538,6 +579,8 @@ int main (void) {
                 voltCounter2++;
                 if(count<64){
                   flagLeft = 1;}
+                else if(count==64){
+                  flagLeft = 0;}
                 else{
                   flagRight = 1;}
               }
@@ -553,38 +596,14 @@ int main (void) {
         /*----------------------------------------------------------------------------
         Gradual Turn
         *----------------------------------------------------------------------------*/
-        PWL = PWR = PWinit; //initialize left and right DC motors for this iteration through the main loop
-        //LEFT TURN
-        if (elevation == 0){ //don't turn during uphill (red)
-          /*
-          if ((voltMid2 > 65) && (turn != 1) && (voltMid1 <= 30)){
-            //put("Left Turn: "); sprintf(str, "%d", voltCounter2); put("\r\n");
-            PW1 = PW1init - 10*(voltMid2-65);
-            if(PW1 < PW1init - 170){
-              turn = 2;
-              PWR = PWinit + 130;
-              PWL = PWinit - 70;;
-            }
-          }
-          //RIGHT TURN
-          else if ((voltMid1 > 55) && (turn != 2) && (voltMid2 <= 30)){
-            //put("Right Turn: "); sprintf(str, "%d", voltCounter1); put("\r\n");
-            PW1 = PW1init + 10*(voltMid1-55);
-            if(PW1 > PW1init + 170){
-              turn = 1;
-              PWR = PWinit - 70;
-              PWL = PWinit + 130;
-            }
-          }
-          */
           //RIGHT TURN
           if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
             PW1 = PW1init + 39*(voltMid2-15);
             
-            if(PW1 > PW1init + 170){
+            if(PW1 > PW1init + 220){
               turn = 1;
-              PWR = PWinit - 80;
-              PWL = PWinit + 150;
+              PWR = PWinit - 70;
+              PWL = PWinit + 130;
             }
             
           }
@@ -592,17 +611,17 @@ int main (void) {
           else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
             PW1 = PW1init - 39*(113-voltMid2);
             
-            if(PW1 < PW1init - 170){
+            if(PW1 < PW1init + 220){
               turn = 2;
-              PWR = PWinit + 150;
-              PWL = PWinit - 80;;
+              PWR = PWinit + 130;
+              PWL = PWinit - 70;
             }
             
           }
           //STRAIGHT
           else{
-            turn = 0;
             PWL = PWR = PWinit;
+            turn = 0;
             if (PW1 > PW1init){ //If car in right turn
               if (PW1-PW1init >= PWinit){
                 PW1-=PWinit;}
@@ -615,55 +634,22 @@ int main (void) {
             }
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
-        }
-        else if((elevation == 1) || (elevation == -1)){
-          PW1 = PW1init;
-          PWL = PWR = 0;
-        }
-        /*----------------------------------------------------------------------------
-        Elevation Check
-        *----------------------------------------------------------------------------*/
-        if((flagLeft) && (flagRight) && (turn == 0)){
+        if((elevation == 1) || (elevation == -1)){
+          //PW1 = PW1init;
           PWL = PWR = 0;
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
+        }
+        /*----------------------------------------------------------------------------
+        Elevation Check
+        *----------------------------------------------------------------------------*/ 
+        if((flagLeft) && (flagRight) && (hillCounter == 0)){
           LEDRed_On();
           elevation = 1;
-          }
-        else{
-          elevation = 0;}
-        /*
-        if((PW1 >= PW1init-200) && (PW1 <= PW1init+200)){
-          if(elevation == 0){ //if elevation is flat ground
-            if ((slopeAvg() >= 2) && (slopeL() <= (slopeR() + 5) && (slopeR() <= (slopeL() + 5)))){
-              elevation = 1; //detect uphill via rapid increase in DC motor feedback
-              LEDRed_On();
-            }
-          }
-          else if (elevation == 1){ //if previous elevation was uphill
-            //Check if car is at top of hill
-            if(slopeAvg() <= -2){
-              elevation = -1;
-              LEDBlue_On();
-            }
-          }
-					else if (elevation == -1) {//if current elevation is downhill
-						if (slopeAvg() >=0.4){
-              elevation = 0;
-              LEDGreen_On();
-						}
-					}
-          //increase/decrease DC motor speeds to compensate for hills
-				
-					if (slopeAvg() <= -2.5) {
-						PWL = PWL/3;
-						PWR = PWR/3;
-						LEDBlue_On();
-					}
-					else
-						LEDGreen_On();
-					
-        }*/
+          hillCounter++;
+          Start_PIT1();  //Elevation = 1 until PIT1 interrupt, which sets elevation back to 0
+          //crashAndDump(str, "hill check");
+        }
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
@@ -673,7 +659,7 @@ int main (void) {
         put("Right Cam: ");put(zeroOne2); //put("\r\n");
         sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
         sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
-        //sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
+        sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
         //sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
         //sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
         //sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
