@@ -309,7 +309,6 @@ void ADC0_IRQHandler() {
 }
 
 
-
 /*----------------------------------------------------------------------------
   PWM functions
  *----------------------------------------------------------------------------*/
@@ -416,7 +415,6 @@ void PIT_IRQHandler(void) {
 	
   //check to see which channel triggered interrupt 
   if (PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK) {	
-    //FPTB->PTOR = led_mask[LED_GREEN];
     FPTD->PTOR = (1UL << 7); //Toggle PTD7 high (SI)
     FPTB->PTOR = (1UL << 0); //Toggle PTB0 (conversion time measure)
     PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK; //Clear interrupt flag for Channel 0
@@ -435,31 +433,11 @@ void PIT_IRQHandler(void) {
     Stop_PIT1();
   }	//Clear interrupt flag for Channel 1
 }
+
 /*----------------------------------------------------------------------------
   SysTick_Handler
  *----------------------------------------------------------------------------*/
 void SysTick_Handler(void) { /*Systick Interrupt Function*/
-/*
-  if((turn == 0) && (elevation == 0)){
-    speedCounter++;
-    if((speedCounter == 2) || (speedCounter == 4)){
-      FPTD->PTOR = led_mask[LED_BLUE];
-      PWL = PWR = PWinit + 75;
-      TPM0->CONTROLS[0].CnV = PWL;
-		  TPM0->CONTROLS[2].CnV = PWR;
-      if (speedCounter == 4){ // 4 speedCounter = 1 second
-        speedCounter = 0;
-        TPM0->CONTROLS[0].CnV = PWinit;
-        TPM0->CONTROLS[2].CnV = PWinit;
-      }
-    }
-  }
-  else{
-    speedCounter = 0;
-    TPM0->CONTROLS[0].CnV = PWinit;
-    TPM0->CONTROLS[2].CnV = PWinit;
-  }
-*/
 }
 
 /*----------------------------------------------------------------------------
@@ -470,7 +448,6 @@ void disable_HBridge(void){
 
 void enable_HBridge(void){
   FPTE->PSOR = (1UL << 21);}
-
 
 /*----------------------------------------------------------------------------
   MAIN function
@@ -494,7 +471,7 @@ int main (void) {
   uart0_init (uart0_clk_khz, TERMINAL_BAUD);
   SystemCoreClockUpdate();
   LED_Initialize();
-  SysTick_Config(12000000);
+  SysTick_Config(12000000); //quarter-second systick
   Init_PWM();
   Init_PIT(40000); //Load countdown value to Channel 0 of PIT; interrupt frequency = 50Hz
   Init_ADC();
@@ -554,9 +531,8 @@ int main (void) {
               {zeroOne1[count]='1';
               zeroOne2[count]='1';} //Buffer values <14 and >113 automatically get 1
             count++;}
-          __disable_irq();
           put("\r\nPing: \r\n");}
-        else if (buffSwitch == 2){
+        else { //buffSwitch == 2)
           while (count<128){
             if(pong1[count]>max1){max1=pong1[count];}
             if(pong1[count]<min1){min1=pong1[count];}
@@ -603,9 +579,8 @@ int main (void) {
               {zeroOne1[count]='1';
               zeroOne2[count]='1';}
             count++;}
-          __disable_irq();
           put("\r\nPong: \r\n");}
-        voltMid1 = voltMid1/voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
+        voltMid1 = voltMid1 / voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
         voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
         /*----------------------------------------------------------------------------
         Gradual Turn
@@ -613,24 +588,20 @@ int main (void) {
           //RIGHT TURN
           if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
             PW1 = PW1init + 45*(voltMid2-15);
-            
             if(PW1 > PW1init + 220){
               turn = 1;
               PWR = PWinit - 70;
               PWL = PWinit + 130;
             }
-            
           }
           //LEFT TURN
           else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
             PW1 = PW1init - 45*(113-voltMid2);
-            
             if(PW1 < PW1init + 220){
               turn = 2;
               PWR = PWinit + 130;
               PWL = PWinit - 70;
             }
-            
           }
           //STRAIGHT
           else{
@@ -649,7 +620,6 @@ int main (void) {
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
         if(elevation == 1){
-          //PW1 = PW1init;
           PWL = PWR = 0;
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
@@ -662,29 +632,15 @@ int main (void) {
           elevation = 1;
           hillCounter++;
           Start_PIT1();  //Elevation = 1 until PIT1 interrupt, which sets elevation back to 0
-          //crashAndDump(str, "hill check");
         }
         /*----------------------------------------------------------------------------
         Print data
         *----------------------------------------------------------------------------*/
-        //put("Left Cam:  "); put(zeroOne1); //put("\r\n");
-        //sprintf(str, "%d", voltMid1); put(" "); put(str); //put("\r\n");
-        //sprintf(str, "%d", L_IFB); put(" "); put(str); put("\r\n");
-        put("Right Cam: ");put(zeroOne2); //put("\r\n");
+        __disable_irq();
+        put("Right Cam: "); put(zeroOne2); //put("\r\n");
         sprintf(str, "%d", voltMid2); put(" "); put(str); //put("\r\n");
         sprintf(str, "%d", R_IFB); put(" "); put(str); put("\r\n");
         sprintf(str, "%d", PW); put("PW="); put(str); put(" ");
-        //sprintf(str, "%d", elevation); put("elevation="); put(str); put(" "); 
-        //sprintf(str, "%d", fbTarget); put("fbTarget="); put(str); put(" ");
-        //sprintf(str, "%d", turn); put("turn="); put(str); put(" ");
-        //sprintf(str, "%f", slopeAvg()); put("slope="); put(str); put("\r\n");
-        //put("Feedback history = ");
-        //for(j=0;j<20;j++){
-        //  sprintf(str, "%d", feedbackRingL[j]); put(str); put(" ");}
-        //for(j=0;j<20;j++){
-        //  sprintf(str, "%d", feedbackRingR[j]); put(str); put(" ");}
-        //put("\r\n");
-
         __enable_irq();
         Done=0;count=0;
         sum1=0;avg1=0;max1=0;min1=400;voltMid1=0;voltCounter1=0;
@@ -713,7 +669,6 @@ int main (void) {
             sprintf(str, "%d", dutyA); put(str); put("\r\n");
           }
           if (key == 'c'){
-            __enable_irq();
             Start_PIT();
             count=0; Done=0;
             PW = getPot1PW();
