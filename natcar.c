@@ -388,7 +388,7 @@ void Init_PIT(unsigned period_us) {
   PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(24*period_us); //Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 25Hz
   PIT->CHANNEL[0].TCTRL &= PIT_TCTRL_CHN_MASK; //Disable chaining
   PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK; //Enables timer interrupts when timer reaches 0
-  PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(24*15*period_us); //Load countdown value to Channel 1 of PIT; Gives interrupt frequency of 1Hz
+  PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(24*17*period_us); //Load countdown value to Channel 1 of PIT; Gives interrupt frequency of 1Hz
   PIT->CHANNEL[1].TCTRL &= PIT_TCTRL_CHN_MASK;
   PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TIE_MASK;
   //Enable Interrupts
@@ -439,13 +439,27 @@ void PIT_IRQHandler(void) {
   SysTick_Handler
  *----------------------------------------------------------------------------*/
 void SysTick_Handler(void) { /*Systick Interrupt Function*/
-  speedCounter++;
-  if((speedCounter == 2) || (speedCounter == 4)){
-    FPTD->PTOR = led_mask[LED_BLUE];
-    if (speedCounter == 4){
-      speedCounter = 0;
+/*
+  if((turn == 0) && (elevation == 0)){
+    speedCounter++;
+    if((speedCounter == 2) || (speedCounter == 4)){
+      FPTD->PTOR = led_mask[LED_BLUE];
+      PWL = PWR = PWinit + 75;
+      TPM0->CONTROLS[0].CnV = PWL;
+		  TPM0->CONTROLS[2].CnV = PWR;
+      if (speedCounter == 4){ // 4 speedCounter = 1 second
+        speedCounter = 0;
+        TPM0->CONTROLS[0].CnV = PWinit;
+        TPM0->CONTROLS[2].CnV = PWinit;
+      }
     }
   }
+  else{
+    speedCounter = 0;
+    TPM0->CONTROLS[0].CnV = PWinit;
+    TPM0->CONTROLS[2].CnV = PWinit;
+  }
+*/
 }
 
 /*----------------------------------------------------------------------------
@@ -598,7 +612,7 @@ int main (void) {
         *----------------------------------------------------------------------------*/
           //RIGHT TURN
           if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
-            PW1 = PW1init + 39*(voltMid2-15);
+            PW1 = PW1init + 45*(voltMid2-15);
             
             if(PW1 > PW1init + 220){
               turn = 1;
@@ -609,7 +623,7 @@ int main (void) {
           }
           //LEFT TURN
           else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
-            PW1 = PW1init - 39*(113-voltMid2);
+            PW1 = PW1init - 45*(113-voltMid2);
             
             if(PW1 < PW1init + 220){
               turn = 2;
@@ -634,7 +648,7 @@ int main (void) {
             }
           }
           prevErr1 = voltMid1; prevErr2 = voltMid2;
-        if((elevation == 1) || (elevation == -1)){
+        if(elevation == 1){
           //PW1 = PW1init;
           PWL = PWR = 0;
           TPM0->CONTROLS[2].CnV = PWR;
