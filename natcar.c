@@ -430,6 +430,7 @@ void PIT_IRQHandler(void) {
     PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;
     LEDGreen_On();
     elevation = 0;
+    hillCounter--;
     Stop_PIT1();
   }	//Clear interrupt flag for Channel 1
 }
