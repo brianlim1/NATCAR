@@ -583,42 +583,42 @@ int main (void) {
         voltMid1 = voltMid1 / voltCounter1; //Calculate voltage midpoint by dividing all black indices with counter
         voltMid2 = voltMid2/voltCounter2; //bigger LCam number means the line is closer to the car's (left) edge. Smaller RCam number means the line is closer to the car's (right) edge. -1 on either Cam means no line.
         /*----------------------------------------------------------------------------
-        Gradual Turn
+        Turn
         *----------------------------------------------------------------------------*/
-          //RIGHT TURN
-          if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
-            PW1 = PW1init + 45*(voltMid2-15);
-            if(PW1 > PW1init + 220){
-              turn = 1;
-              PWR = PWinit - 70;
-              PWL = PWinit + 130;
-            }
+        //RIGHT TURN
+        if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
+          PW1 = PW1init + 45*(voltMid2-15);
+          if(PW1 > PW1init + 220){
+            turn = 1;
+            PWR = PWinit - 70;
+            PWL = PWinit + 130;
           }
-          //LEFT TURN
-          else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
-            PW1 = PW1init - 45*(113-voltMid2);
-            if(PW1 < PW1init + 220){
-              turn = 2;
-              PWR = PWinit + 130;
-              PWL = PWinit - 70;
-            }
+        }
+        //LEFT TURN
+        else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
+          PW1 = PW1init - 45*(113-voltMid2);
+          if(PW1 < PW1init + 220){
+            turn = 2;
+            PWR = PWinit + 130;
+            PWL = PWinit - 70;
           }
-          //STRAIGHT
-          else{
-            PWL = PWR = PWinit;
-            turn = 0;
-            if (PW1 > PW1init){ //If car in right turn
-              if (PW1-PW1init >= PWinit){
-                PW1-=PWinit;}
-              else {PW1=PW1init;}
-            }
-            if (PW1 < PW1init){ //If car in left turn
-              if (PW1init-PW1 <= PWinit){
-                PW1+=PWinit;}
-              else {PW1=PW1init;}
-            }
+        }
+        //STRAIGHT
+        else{
+          PWL = PWR = PWinit;
+          turn = 0;
+          if (PW1 > PW1init){ //If car in right turn
+            if (PW1-PW1init >= PWinit){
+              PW1-=PWinit;}
+            else {PW1=PW1init;}
           }
-          prevErr1 = voltMid1; prevErr2 = voltMid2;
+          if (PW1 < PW1init){ //If car in left turn
+            if (PW1init-PW1 <= PWinit){
+              PW1+=PWinit;}
+            else {PW1=PW1init;}
+          }
+        }
+        prevErr1 = voltMid1; prevErr2 = voltMid2;
         if(elevation == 1){
           PWL = PWR = 0;
           TPM0->CONTROLS[2].CnV = PWR;
