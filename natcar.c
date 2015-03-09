@@ -54,6 +54,7 @@ char key;
 short hill = 30; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
 short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
 short fbTarget = 10;
+short straightSpeed = 0;
 
 #define LED_RED    0
 #define LED_GREEN  1
@@ -648,6 +649,15 @@ int main (void) {
 					case 3: LEDBlue_On(); break;
 					case 4: LEDRed_On(); break;
 				}
+        /*----------------------------------------------------------------------------
+        Increase Speed on Straights
+        *----------------------------------------------------------------------------*/
+        if (!turn && (straightSpeed < 50)) //if on a straight and hasn't accelerated on it for more than 50
+          straightSpeed++;
+        else
+          straightSpeed = 0;
+        PWL += straightSpeed;
+        PWR += straightSpeed;
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/ 
