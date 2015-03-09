@@ -605,8 +605,8 @@ int main (void) {
           PW1 = PW1init + 50*(voltMid1-15);
           if(PW1 > PW1init){
             turn = 3;
-            PWR = PWinit - 110;
-            PWL = PWinit + 190;
+            PWR = PWinit - 200;
+            PWL = PWinit + 100;
           }
         }
 				/*
@@ -641,23 +641,11 @@ int main (void) {
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
         }
-        /*----------------------------------------------------------------------------
-        Increase Speed on Straights
-        *----------------------------------------------------------------------------*/
-        if (!turn && (straightSpeed < 50)) //if on a straight and hasn't accelerated on it for more than 50
-          straightSpeed++;
-        else
-          straightSpeed = 0;
-        PWL += straightSpeed;
-        PWR += straightSpeed;
-				switch (turn)
-				{
-					case 0:
-					case 1:
-					case 2: LEDGreen_On(); break;
-					case 3: LEDBlue_On(); break;
-					case 4: LEDRed_On(); break;
-				}
+        switch (turn) {
+        case 0: case 1: case 2: LEDGreen_On(); break;
+        case 3: LEDBlue_On(); break;
+        case 4: LEDRed_On(); break;
+        }
         /*----------------------------------------------------------------------------
         Increase Speed on Straights
         *----------------------------------------------------------------------------*/
