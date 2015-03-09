@@ -388,7 +388,7 @@ void Init_PIT(unsigned period_us) {
   PIT->CHANNEL[0].LDVAL = PIT_LDVAL_TSV(24*period_us); //Load countdown value to Channel 0 of PIT; Gives interrupt frequency of 25Hz
   PIT->CHANNEL[0].TCTRL &= PIT_TCTRL_CHN_MASK; //Disable chaining
   PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK; //Enables timer interrupts when timer reaches 0
-  PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(24*17*period_us); //Load countdown value to Channel 1 of PIT; Gives interrupt frequency of 1Hz
+  PIT->CHANNEL[1].LDVAL = PIT_LDVAL_TSV(24*10*period_us); //Load countdown value to Channel 1 of PIT; Gives interrupt frequency of 1Hz
   PIT->CHANNEL[1].TCTRL &= PIT_TCTRL_CHN_MASK;
   PIT->CHANNEL[1].TCTRL |= PIT_TCTRL_TIE_MASK;
   //Enable Interrupts
@@ -587,8 +587,8 @@ int main (void) {
           PW1 = PW1init + 50*(voltMid2-15);
           if(PW1 > PW1init + 220){
             turn = 1;
-            PWR = PWinit - 70;
-            PWL = PWinit + 130;
+            PWR = PWinit - 0;
+            PWL = PWinit + 100;
           }
         }
         //LEFT TURN
@@ -596,8 +596,8 @@ int main (void) {
           PW1 = PW1init - 50*(113-voltMid2);
           if(PW1 < PW1init + 220){
             turn = 2;
-            PWR = PWinit + 130;
-            PWL = PWinit - 70;
+            PWR = PWinit + 100;
+            PWL = PWinit - 0;
           }
         }
         //RIGHT TURN -- LOWER CAMERA
@@ -605,11 +605,10 @@ int main (void) {
           PW1 = PW1init + 50*(voltMid1-15);
           if(PW1 > PW1init){
             turn = 3;
-            PWR = PWinit - 200;
-            PWL = PWinit + 100;
+            PWR = PWinit - 300;
+            PWL = PWinit + 0;
           }
         }
-				/*
         //LEFT TURN -- LOWER CAMERA
         else if((voltMid1 < 113) && (voltMid1 >64) && (turn != 1) && (turn != 3)){
           PW1 = PW1init - 50*(113-voltMid1);
@@ -619,7 +618,6 @@ int main (void) {
             PWL = PWinit - 90;
           }
         }
-				*/
         //STRAIGHT
         else{
           PWL = PWR = PWinit;
@@ -637,7 +635,8 @@ int main (void) {
         }
         prevErr1 = voltMid1; prevErr2 = voltMid2;
         if(elevation == 1){
-          PWL = PWR = 0;
+          PWL -= 50;
+					PWR -= 50;
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
         }
@@ -645,15 +644,15 @@ int main (void) {
 				{
 					case 0:
 					case 1:
-					case 2: LEDGreen_On(); break;
-					case 3: LEDBlue_On(); break;
-					case 4: LEDRed_On(); break;
+					case 2: LEDAll_Off(); break;
+					case 3: 
+					case 4: LEDBlue_On(); break;
 				}
         /*----------------------------------------------------------------------------
         Increase Speed on Straights
         *----------------------------------------------------------------------------*/
-        if (!turn /*&& (straightSpeed < 50)*/) //if on a straight and hasn't accelerated on it for more than 50
-          straightSpeed += 2;
+        if (!turn  /*&& (straightSpeed < 50)*/) //if on a straight and hasn't accelerated on it for more than 50
+          straightSpeed += 3;
         else
           straightSpeed = 0;
         PWL += straightSpeed;
@@ -664,6 +663,7 @@ int main (void) {
         if((flagLeft) && (flagRight) && ((hillCounter % 2) == 0)){
           elevation = 1;
           hillCounter++;
+					LEDRed_On();
           Start_PIT1();  //Elevation = 1 until PIT1 interrupt, which sets elevation back to 0
         }
         /*----------------------------------------------------------------------------
