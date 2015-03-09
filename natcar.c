@@ -641,6 +641,15 @@ int main (void) {
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
         }
+        /*----------------------------------------------------------------------------
+        Increase Speed on Straights
+        *----------------------------------------------------------------------------*/
+        if (!turn && (straightSpeed < 50)) //if on a straight and hasn't accelerated on it for more than 50
+          straightSpeed++;
+        else
+          straightSpeed = 0;
+        PWL += straightSpeed;
+        PWR += straightSpeed;
 				switch (turn)
 				{
 					case 0:
