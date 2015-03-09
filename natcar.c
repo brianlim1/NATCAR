@@ -42,8 +42,8 @@ int PWinit=260;
 int PW1init=5100; //Center of servo motor
 int feedbackRingL[20];
 int feedbackRingR[20];
-int flagLeft;
-int flagRight;
+int flagLeft=0;
+int flagRight=0;
 int turn=0; //0 for neutral, 1 for right, 2 for left
 char ping1[130]; char pong1[130];
 char ping2[130]; char pong2[130];
@@ -602,21 +602,23 @@ int main (void) {
         //RIGHT TURN -- LOWER CAMERA
         else if((voltMid1 > 15) && (voltMid1 < 64) && (turn != 2) && (turn != 4)){
           PW1 = PW1init + 50*(voltMid1-15);
-          if(PW1 > PW1init + 220){
+          if(PW1 > PW1init){
             turn = 3;
-            PWR = PWinit - 70;
-            PWL = PWinit + 130;
+            PWR = PWinit - 110;
+            PWL = PWinit + 190;
           }
         }
+				/*
         //LEFT TURN -- LOWER CAMERA
         else if((voltMid1 < 113) && (voltMid1 >64) && (turn != 1) && (turn != 3)){
           PW1 = PW1init - 50*(113-voltMid1);
-          if(PW1 < PW1init + 220){
+          if(PW1 < PW1init){
             turn = 4;
-            PWR = PWinit + 130;
-            PWL = PWinit - 70;
+            PWR = PWinit + 170;
+            PWL = PWinit - 90;
           }
         }
+				*/
         //STRAIGHT
         else{
           PWL = PWR = PWinit;
