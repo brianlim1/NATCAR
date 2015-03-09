@@ -54,7 +54,6 @@ char key;
 short hill = 30; //DC motor feedback change: add this value to target for uphill, subtract it for downhill
 short elevation = 0; //0 for flat, 1 for uphill, -1 for downhill
 short fbTarget = 10;
-short straightSpeed = 0;
 
 #define LED_RED    0
 #define LED_GREEN  1
@@ -429,7 +428,6 @@ void PIT_IRQHandler(void) {
   }
   else if (PIT->CHANNEL[1].TFLG & PIT_TFLG_TIF_MASK) {
     PIT->CHANNEL[1].TFLG &= PIT_TFLG_TIF_MASK;
-    LEDGreen_On();
     elevation = 0;
     Stop_PIT1();
   }	//Clear interrupt flag for Channel 1
@@ -455,9 +453,7 @@ void enable_HBridge(void){
  *----------------------------------------------------------------------------*/
 int main (void) {
   //variables
-  //char str[80];
   int uart0_clk_khz;
-	int SWA_Not_Pressed = 1;
   //initialization code
   SIM->SCGC5 |= (SIM_SCGC5_PORTA_MASK
   | SIM_SCGC5_PORTB_MASK
@@ -492,7 +488,6 @@ int main (void) {
   fbTarget = 0.549 * (double)dutyA - 26.9;
   if(fbTarget < 10){
     fbTarget = 10;}
-  LEDGreen_On();
   Start_PIT();
 
   while (1){
@@ -587,8 +582,8 @@ int main (void) {
         Turn
         *----------------------------------------------------------------------------*/
         //RIGHT TURN
-        if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2)){
-          PW1 = PW1init + 45*(voltMid2-15);
+        if((voltMid2 > 15) && (voltMid2 < 64) && (turn != 2) && (turn != 4)){
+          PW1 = PW1init + 50*(voltMid2-15);
           if(PW1 > PW1init + 220){
             turn = 1;
             PWR = PWinit - 70;
@@ -596,10 +591,28 @@ int main (void) {
           }
         }
         //LEFT TURN
-        else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1)){
-          PW1 = PW1init - 45*(113-voltMid2);
+        else if((voltMid2 < 113) && (voltMid2 >64) && (turn != 1) && (turn != 3)){
+          PW1 = PW1init - 50*(113-voltMid2);
           if(PW1 < PW1init + 220){
             turn = 2;
+            PWR = PWinit + 130;
+            PWL = PWinit - 70;
+          }
+        }
+        //RIGHT TURN -- LOWER CAMERA
+        else if((voltMid1 > 15) && (voltMid1 < 64) && (turn != 2) && (turn != 4)){
+          PW1 = PW1init + 50*(voltMid1-15);
+          if(PW1 > PW1init + 220){
+            turn = 3;
+            PWR = PWinit - 70;
+            PWL = PWinit + 130;
+          }
+        }
+        //LEFT TURN -- LOWER CAMERA
+        else if((voltMid1 < 113) && (voltMid1 >64) && (turn != 1) && (turn != 3)){
+          PW1 = PW1init - 50*(113-voltMid1);
+          if(PW1 < PW1init + 220){
+            turn = 4;
             PWR = PWinit + 130;
             PWL = PWinit - 70;
           }
@@ -625,20 +638,18 @@ int main (void) {
           TPM0->CONTROLS[2].CnV = PWR;
           TPM0->CONTROLS[0].CnV = PWL;
         }
-        /*----------------------------------------------------------------------------
-        Increase Speed on Straights
-        *----------------------------------------------------------------------------*/
-        if (!turn && (straightSpeed < 50)) //if on a straight and hasn't accelerated on it for more than 50
-          straightSpeed++;
-        else
-          straightSpeed = 0;
-        PWL += straightSpeed;
-        PWR += straightSpeed;
+				switch (turn)
+				{
+					case 0:
+					case 1:
+					case 2: LEDGreen_On(); break;
+					case 3: LEDBlue_On(); break;
+					case 4: LEDRed_On(); break;
+				}
         /*----------------------------------------------------------------------------
         Elevation Check
         *----------------------------------------------------------------------------*/ 
         if((flagLeft) && (flagRight) && ((hillCounter % 2) == 0)){
-          LEDRed_On();
           elevation = 1;
           hillCounter++;
           Start_PIT1();  //Elevation = 1 until PIT1 interrupt, which sets elevation back to 0
