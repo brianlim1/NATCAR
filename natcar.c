@@ -605,8 +605,8 @@ int main (void) {
           PW1 = PW1init + 50*(voltMid1-15);
           if(PW1 > PW1init){
             turn = 3;
-            PWR = PWinit - 110;
-            PWL = PWinit + 190;
+            PWR = PWinit - 200;
+            PWL = PWinit + 100;
           }
         }
 				/*
@@ -653,7 +653,7 @@ int main (void) {
         Increase Speed on Straights
         *----------------------------------------------------------------------------*/
         if (!turn /*&& (straightSpeed < 50)*/) //if on a straight and hasn't accelerated on it for more than 50
-          straightSpeed += 5;
+          straightSpeed += 2;
         else
           straightSpeed = 0;
         PWL += straightSpeed;
